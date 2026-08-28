@@ -2,403 +2,324 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <!-- Mobil cihazlarda tam ekran uygulama gibi görünmesi için gerekli ayarlar -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <title>Makro Takip</title>
-    <!-- Tasarım için Tailwind CSS kütüphanesini kullanıyoruz -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- İkonlar için FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <title>DailyFuel - Makro Takip</title>
     <style>
-        /* iOS tarzı yumuşak dokunuşlar ve geçişler */
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            -webkit-tap-highlight-color: transparent; /* Tıklama pırpırını kaldırır */
+        /* MODERN UI TASARIMI (CSS) */
+        :root {
+            --arkaplan: #F4F7F6;
+            --kart-arkaplan: #FFFFFF;
+            --vurgu-renk: #4361EE; /* Elektrik Mavisi */
+            --basari-renk: #2EC4B6; /* Zümrüt Yeşili */
+            --tehlike-renk: #E71D36; /* Kırmızı */
+            --yazi-ana: #2B2D42;
+            --yazi-pasif: #8D99AE;
+            --golge: 0 10px 20px rgba(0,0,0,0.05);
+            --kose-yuvarlama: 16px;
         }
-        .tab-content {
-            display: none;
-            animation: fadeIn 0.3s ease-in-out;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        /* Modal (Açılır Pencere) arka planı */
-        .modal-bg {
-            background-color: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(2px);
-        }
-        /* Alt navigasyon barı için boşluk */
-        .pb-safe { padding-bottom: 90px; }
+
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--arkaplan); color: var(--yazi-ana); margin: 0; padding: 20px; padding-bottom: 100px; }
+        h1, h2 { text-align: center; margin-bottom: 15px; }
+        .gizli { display: none !important; }
+
+        /* Kart ve Kutu Tasarımları (Derinlik) */
+        .kart { background: var(--kart-arkaplan); padding: 20px; border-radius: var(--kose-yuvarlama); box-shadow: var(--golge); margin-bottom: 20px; }
+        .liste-elemani { background: var(--kart-arkaplan); padding: 15px; border-radius: 12px; margin-bottom: 12px; box-shadow: var(--golge); display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--vurgu-renk); }
+        .liste-detay { font-size: 13px; color: var(--yazi-pasif); margin-top: 5px; display: block; }
+        
+        /* Skor Tabelası */
+        .skor-paneli { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; }
+        .skor-kutu { flex: 1 1 45%; text-align: center; background: var(--arkaplan); padding: 15px 5px; border-radius: 12px; }
+        .skor-kutu strong { display: block; font-size: 24px; color: var(--vurgu-renk); }
+        .hedef-yazi { font-size: 11px; color: var(--yazi-pasif); display: block; margin-top: 3px; }
+
+        /* Düğmeler (Köşe Yuvarlatma ve Vurgu) */
+        button { background-color: var(--vurgu-renk); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; transition: 0.3s; }
+        button:active { transform: scale(0.98); }
+        .btn-tehlike { background-color: var(--tehlike-renk); width: auto; padding: 10px 14px; margin-top: 0; }
+        .btn-duzenle { background-color: var(--basari-renk); width: auto; padding: 10px 14px; margin-top: 0; margin-right: 5px; }
+        .btn-ikincil { background-color: var(--yazi-pasif); }
+        .buton-grubu { display: flex; gap: 5px; }
+
+        /* Girdi Alanları (Nefes Alanı) */
+        input, select { width: 100%; padding: 14px; margin-bottom: 15px; border: 1px solid #DFE2E6; border-radius: 10px; font-size: 16px; box-sizing: border-box; background-color: #FAFAFA; outline: none; }
+        input:focus, select:focus { border-color: var(--vurgu-renk); }
+        label { font-size: 14px; font-weight: bold; color: var(--yazi-ana); display: block; margin-bottom: 5px; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 h-screen overflow-x-hidden pb-safe">
+<body>
 
-    <!-- ÜST BAŞLIK -->
-    <header class="bg-white shadow-sm pt-12 pb-4 px-6 sticky top-0 z-10">
-        <h1 class="text-2xl font-bold text-gray-900" id="headerTitle">Günlük Özet</h1>
-    </header>
-
-    <!-- SAYFA 1: GÜNLÜK TÜKETİM ÖZETİ -->
-    <main id="tab-daily" class="tab-content active p-4 space-y-6">
+    <!-- 0. KULLANICI PROFİLİ SİHİRBAZI -->
+    <div id="profil-ekrani" class="gizli kart">
+        <h1>Hedeflerini Belirle</h1>
+        <p style="text-align:center; font-size:14px; color:#8D99AE;">Günlük ihtiyacını bilimsel olarak hesaplayalım.</p>
         
-        <!-- Günlük Toplam Makro Kartları -->
-        <div class="grid grid-cols-2 gap-4">
-            <div class="bg-blue-500 rounded-2xl p-4 text-white shadow-md">
-                <p class="text-sm opacity-80 font-medium">Toplam Kalori</p>
-                <div class="text-3xl font-bold mt-1" id="totalKcal">0</div>
-                <p class="text-xs mt-1">kcal</p>
-            </div>
-            
-            <div class="grid grid-rows-3 gap-2">
-                <div class="bg-white rounded-xl p-2 flex justify-between items-center shadow-sm border border-gray-100">
-                    <span class="text-xs font-semibold text-gray-500">Protein</span>
-                    <span class="font-bold text-red-500 text-sm"><span id="totalPro">0</span>g</span>
-                </div>
-                <div class="bg-white rounded-xl p-2 flex justify-between items-center shadow-sm border border-gray-100">
-                    <span class="text-xs font-semibold text-gray-500">Karb</span>
-                    <span class="font-bold text-green-500 text-sm"><span id="totalCarb">0</span>g</span>
-                </div>
-                <div class="bg-white rounded-xl p-2 flex justify-between items-center shadow-sm border border-gray-100">
-                    <span class="text-xs font-semibold text-gray-500">Yağ</span>
-                    <span class="font-bold text-yellow-500 text-sm"><span id="totalFat">0</span>g</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Bugün Yenilenler Listesi -->
-        <div>
-            <h2 class="text-lg font-bold text-gray-800 mb-3">Bugün Tüketilenler</h2>
-            <div id="dailyLogList" class="space-y-3">
-                <!-- Tüketilen besinler buraya JavaScript ile eklenecek -->
-                <p class="text-sm text-gray-400 text-center py-4">Henüz bir besin eklemedin. Menüden listeye gidip tüketim ekleyebilirsin.</p>
-            </div>
-        </div>
-    </main>
-
-    <!-- SAYFA 2: BESİN LİSTESİ (EXCEL'İN KARŞILIĞI) -->
-    <main id="tab-foods" class="tab-content p-4 space-y-4">
+        <label>Cinsiyet</label>
+        <select id="pr-cinsiyet"><option value="erkek">Erkek</option><option value="kadin">Kadın</option></select>
         
-        <div class="flex justify-between items-center mb-2">
-            <h2 class="text-lg font-bold text-gray-800">Kütüphane (100g Değerleri)</h2>
-            <button onclick="openNewFoodModal()" class="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm">
-                <i class="fa-solid fa-plus mr-1"></i> Yeni Ekle
-            </button>
-        </div>
-
-        <!-- Arama Çubuğu -->
-        <div class="relative">
-            <i class="fa-solid fa-search absolute left-4 top-3.5 text-gray-400"></i>
-            <input type="text" id="searchInput" onkeyup="filterFoods()" placeholder="Besin ara..." class="w-full bg-white border-none rounded-xl py-3 pl-10 pr-4 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none text-sm">
-        </div>
-
-        <div id="foodList" class="space-y-3 pb-6">
-            <!-- Besin Kütüphanesi buraya JavaScript ile eklenecek -->
-        </div>
-    </main>
-
-
-    <!-- ALT NAVİGASYON BARI -->
-    <nav class="fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around items-center pb-8 pt-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
-        <button onclick="switchTab('daily', 'Günlük Özet')" id="nav-daily" class="flex flex-col items-center text-blue-500">
-            <i class="fa-solid fa-chart-pie text-xl mb-1"></i>
-            <span class="text-[10px] font-semibold">Günlük</span>
-        </button>
-        <button onclick="switchTab('foods', 'Besin Listesi')" id="nav-foods" class="flex flex-col items-center text-gray-400">
-            <i class="fa-solid fa-list-ul text-xl mb-1"></i>
-            <span class="text-[10px] font-semibold">Liste</span>
-        </button>
-    </nav>
-
-
-    <!-- MODAL 1: GRAM GİRME EKRANI (Ürün Tüketme) -->
-    <div id="gramModal" class="fixed inset-0 modal-bg hidden items-center justify-center z-50 px-4">
-        <div class="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl transform transition-all">
-            <h3 class="text-xl font-bold text-gray-900 mb-1" id="modalFoodName">Ürün Adı</h3>
-            <p class="text-sm text-gray-500 mb-6">Ne kadar tükettin?</p>
-            
-            <div class="flex items-center justify-center space-x-2 mb-6">
-                <input type="number" id="gramInput" class="text-center text-4xl font-bold w-24 border-b-2 border-blue-500 focus:outline-none text-gray-800" placeholder="0">
-                <span class="text-xl font-bold text-gray-400">gr</span>
-            </div>
-
-            <div class="flex space-x-3">
-                <button onclick="closeGramModal()" class="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-bold">İptal</button>
-                <button onclick="saveConsumption()" class="flex-1 bg-blue-500 text-white py-3 rounded-xl font-bold shadow-md">Kaydet</button>
-            </div>
-            <!-- Hangi yemeğin seçili olduğunu hafızada tutmak için gizli input -->
-            <input type="hidden" id="selectedFoodId">
-        </div>
+        <label>Yaş</label>
+        <input type="number" id="pr-yas" placeholder="Örn: 25">
+        
+        <label>Boy (cm)</label>
+        <input type="number" id="pr-boy" placeholder="Örn: 175">
+        
+        <label>Kilo (kg)</label>
+        <input type="number" id="pr-kilo" placeholder="Örn: 70">
+        
+        <label>Haftalık Hareket Seviyesi</label>
+        <select id="pr-hareket">
+            <option value="1.2">Masa Başı / Hareketsiz</option>
+            <option value="1.375">Haftada 1-3 Gün Hafif Spor</option>
+            <option value="1.55">Haftada 3-5 Gün Orta Tempo</option>
+            <option value="1.725">Haftada 6-7 Gün Ağır Antrenman</option>
+        </select>
+        
+        <button onclick="profilKaydet()">Hesapla ve Başla</button>
     </div>
 
-
-    <!-- MODAL 2: YENİ BESİN EKLEME EKRANI (Kütüphaneye ekleme) -->
-    <div id="newFoodModal" class="fixed inset-0 modal-bg hidden flex-col items-center justify-end z-50">
-        <div class="bg-white rounded-t-3xl w-full h-[85vh] p-6 shadow-2xl flex flex-col">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-bold text-gray-900">Yeni Besin Ekle</h3>
-                <button onclick="closeNewFoodModal()" class="bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center text-gray-600"><i class="fa-solid fa-times"></i></button>
+    <!-- 1. ANA EKRAN -->
+    <div id="ana-ekran" class="gizli">
+        <h1 style="font-size: 24px;">Günlük Yakıtın</h1>
+        
+        <div class="kart">
+            <div class="skor-paneli">
+                <div class="skor-kutu"><strong id="gun-kalori">0</strong><span>Kalori</span><span class="hedef-yazi" id="hedef-kalori">Hedef: 0</span></div>
+                <div class="skor-kutu"><strong id="gun-protein">0</strong><span>Protein</span><span class="hedef-yazi" id="hedef-protein">Hedef: 0g</span></div>
+                <div class="skor-kutu"><strong id="gun-yag">0</strong><span>Yağ</span><span class="hedef-yazi" id="hedef-yag">Hedef: 0g</span></div>
+                <div class="skor-kutu"><strong id="gun-karb">0</strong><span>Karb</span><span class="hedef-yazi" id="hedef-karb">Hedef: 0g</span></div>
             </div>
-            
-            <p class="text-sm text-gray-500 mb-4 border-l-4 border-blue-500 pl-3">Değerleri her zaman <b>100 gram</b> ürün için giriniz. Uygulama matematiği otomatik yapacaktır.</p>
-
-            <div class="space-y-4 overflow-y-auto flex-1 pb-4">
-                <div>
-                    <label class="text-xs font-bold text-gray-600 uppercase">Besin Adı (Örn: Yulaf)</label>
-                    <input type="text" id="newFoodName" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mt-1 outline-none focus:border-blue-500">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-xs font-bold text-gray-600 uppercase">Kalori (kcal)</label>
-                        <input type="number" id="newFoodCal" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mt-1 outline-none focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="text-xs font-bold text-gray-600 uppercase">Protein (g)</label>
-                        <input type="number" id="newFoodPro" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mt-1 outline-none focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="text-xs font-bold text-gray-600 uppercase">Karbonhidrat (g)</label>
-                        <input type="number" id="newFoodCarb" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mt-1 outline-none focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="text-xs font-bold text-gray-600 uppercase">Yağ (g)</label>
-                        <input type="number" id="newFoodFat" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mt-1 outline-none focus:border-blue-500">
-                    </div>
-                </div>
-            </div>
-
-            <button onclick="saveNewFood()" class="w-full bg-blue-500 text-white py-4 rounded-xl font-bold shadow-md mt-4">Kütüphaneye Kaydet</button>
         </div>
+
+        <button onclick="sayfaGoster('tuketim-ekrani')">Günüme Besin Ekle (+)</button>
+        <button class="btn-ikincil" onclick="sayfaGoster('kutuphane-ekrani')">Besin Kütüphanemi Aç</button>
+        <button style="background:none; color:#8D99AE; text-decoration:underline; box-shadow:none;" onclick="sayfaGoster('profil-ekrani')">Profilimi Güncelle</button>
+
+        <h2>Bugün Yediklerim</h2>
+        <div id="yenenler-listesi"></div>
     </div>
 
+    <!-- 2. BESİN KÜTÜPHANESİ -->
+    <div id="kutuphane-ekrani" class="gizli">
+        <h1>Besin Kütüphanem</h1>
+        <button class="btn-ikincil" onclick="sayfaGoster('ana-ekran')" style="margin-bottom:15px;">Ana Ekrana Dön</button>
+        <button onclick="besinFormuAc()">Yeni Besin Yarat (+)</button>
+        
+        <h2 style="margin-top: 25px;">Kayıtlı Yiyecekler</h2>
+        <div id="kutuphane-listesi"></div>
+    </div>
 
-    <!-- JAVASCRIPT: Uygulamanın Beyni -->
+    <!-- 3. YENİ BESİN OLUŞTUR / DÜZENLE -->
+    <div id="besin-form-ekrani" class="gizli kart">
+        <h2 id="form-baslik">Besin Ekle/Düzenle</h2>
+        <input type="hidden" id="b-id">
+        <label>Besin Adı</label><input type="text" id="b-ad">
+        <label>Referans Miktar (Gram için 100, Adet için 1)</label><input type="number" id="b-ref">
+        <label>Kalori (Kcal)</label><input type="number" id="b-cal">
+        <label>Protein (g)</label><input type="number" step="0.1" id="b-pro">
+        <label>Yağ (g)</label><input type="number" step="0.1" id="b-yag">
+        <label>Karbonhidrat (g)</label><input type="number" step="0.1" id="b-karb">
+        <button onclick="besinKaydet()">Kaydet</button>
+        <button class="btn-tehlike" onclick="sayfaGoster('kutuphane-ekrani')" style="width:100%; margin-top:10px;">İptal</button>
+    </div>
+
+    <!-- 4. TÜKETİM EKLEME -->
+    <div id="tuketim-ekrani" class="gizli kart">
+        <h2>Ne Yedin?</h2>
+        <select id="t-secim"></select>
+        <label>Miktar (Gram / Adet)</label>
+        <input type="number" id="t-miktar" placeholder="Kaç birim yedin?">
+        <button onclick="tuketimKaydet()">Bugüne Ekle</button>
+        <button class="btn-tehlike" onclick="sayfaGoster('ana-ekran')" style="width:100%; margin-top:10px;">İptal</button>
+    </div>
+
     <script>
-        // 1. UYGULAMA HAFIZASI (Local Storage Kullanarak Telefonun Hafızasına Kaydetme)
-        
-        // Örnek başlangıç besinleri (Eğer hafıza boşsa)
-        const defaultFoods = [
-            { id: 1, name: "Yulaf Ezmesi", cal: 370, pro: 13, carb: 60, fat: 7 },
-            { id: 2, name: "Tavuk Göğsü (Pişmiş)", cal: 165, pro: 31, carb: 0, fat: 3.6 },
-            { id: 3, name: "Pilav (Pişmiş)", cal: 130, pro: 2.7, carb: 28, fat: 0.3 },
-            { id: 4, name: "Yumurta (Adet ~50g)", cal: 155, pro: 13, carb: 1.1, fat: 11 } // Değerler 100g üzerinden
+        // VERİ TOHUMLAMA (Başlangıç Hafızası - Excel Listesi)
+        const tohumVeriler = [
+            { id: 1, ad: "Mozarella", ref: 100, pro: 18, yag: 19, karb: 1, cal: 247 },
+            { id: 2, ad: "Yumurta (adet)", ref: 1, pro: 6.28, yag: 4.75, karb: 0.2, cal: 72 },
+            { id: 3, ad: "Ekmek", ref: 100, pro: 5.22, yag: 1, karb: 50, cal: 249 },
+            { id: 4, ad: "Makarna", ref: 100, pro: 7.2, yag: 1.3, karb: 72, cal: 352 },
+            { id: 5, ad: "Mercimek", ref: 100, pro: 17.5, yag: 1.6, karb: 49, cal: 334 },
+            { id: 6, ad: "Nohut", ref: 100, pro: 12, yag: 6.1, karb: 48, cal: 355 },
+            { id: 7, ad: "Fasülye", ref: 100, pro: 13.8, yag: 1.6, karb: 46, cal: 326 },
+            { id: 8, ad: "Tavuk göğüs", ref: 100, pro: 23, yag: 0.7, karb: 0, cal: 102 },
+            { id: 9, ad: "Sebze", ref: 100, pro: 0, yag: 0, karb: 0, cal: 0 },
+            { id: 10, ad: "Puding", ref: 100, pro: 2000, yag: 300, karb: 1040, cal: 15200 },
+            { id: 11, ad: "Meyve", ref: 100, pro: 0, yag: 0, karb: 15, cal: 15 },
+            { id: 12, ad: "Riso Lungo", ref: 100, pro: 4.02, yag: 0.4, karb: 80, cal: 354 },
+            { id: 13, ad: "Riso Basmati", ref: 100, pro: 5.16, yag: 1.1, karb: 78, cal: 358 },
+            { id: 14, ad: "Toz Peynir", ref: 100, pro: 34, yag: 27, karb: 1, cal: 383 },
+            { id: 15, ad: "Zeytinyağ (gram)", ref: 100, pro: 0, yag: 100, karb: 0, cal: 900 },
+            { id: 16, ad: "Ricotta", ref: 100, pro: 7.7, yag: 9, karb: 3.9, cal: 127 },
+            { id: 17, ad: "Protein tozu", ref: 100, pro: 73, yag: 5.5, karb: 12, cal: 391 },
+            { id: 18, ad: "Süt yağsız", ref: 100, pro: 3.4, yag: 0, karb: 5.1, cal: 34 },
+            { id: 19, ad: "Süt yağlı", ref: 100, pro: 3.3, yag: 3.3, karb: 4.7, cal: 61 },
+            { id: 20, ad: "Süt yarım yağ", ref: 100, pro: 3.3, yag: 1.6, karb: 4.8, cal: 47 },
+            { id: 21, ad: "Yoğurt-aldi", ref: 100, pro: 3.6, yag: 3.7, karb: 4.7, cal: 67 },
+            { id: 22, ad: "Fish fingers", ref: 100, pro: 12, yag: 7.9, karb: 15, cal: 179 },
+            { id: 23, ad: "Skyr", ref: 100, pro: 11, yag: 0.2, karb: 4, cal: 64 },
+            { id: 24, ad: "Un", ref: 100, pro: 6, yag: 0.8, karb: 72, cal: 339 },
+            { id: 25, ad: "Yulaf", ref: 100, pro: 8.4, yag: 7, karb: 59, cal: 375 },
+            { id: 26, ad: "Tavuk ciğer", ref: 100, pro: 16, yag: 6, karb: 0, cal: 122 }
         ];
 
-        // Verileri telefon hafızasından çek, yoksa boş veya varsayılan oluştur
-        let foods = JSON.parse(localStorage.getItem('macroFoods')) || defaultFoods;
-        let consumedLogs = JSON.parse(localStorage.getItem('macroLogs')) || [];
+        // HAFIZA KONTROLÜ
+        let besinler = JSON.parse(localStorage.getItem('df_besinler'));
+        if(!besinler || besinler.length === 0) {
+            besinler = tohumVeriler;
+            localStorage.setItem('df_besinler', JSON.stringify(besinler));
+        }
+        let bugunYenenler = JSON.parse(localStorage.getItem('df_gunluk')) || [];
+        let profil = JSON.parse(localStorage.getItem('df_profil'));
 
-        // 2. ARAYÜZ (GÖRÜNÜM) KONTROLLERİ
-        
-        // Alt sekmeler arası geçiş
-        function switchTab(tabId, title) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.getElementById('tab-' + tabId).classList.add('active');
-            
-            document.getElementById('headerTitle').innerText = title;
-
-            // Navigasyon ikon renklerini güncelle
-            document.getElementById('nav-daily').classList.replace('text-blue-500', 'text-gray-400');
-            document.getElementById('nav-foods').classList.replace('text-blue-500', 'text-gray-400');
-            document.getElementById('nav-' + tabId).classList.replace('text-gray-400', 'text-blue-500');
-
-            if(tabId === 'foods') renderFoods();
-            if(tabId === 'daily') renderDailySummary();
+        // SAYFA YÖNETİMİ
+        function sayfaGoster(id) {
+            document.querySelectorAll('body > div').forEach(d => d.classList.add('gizli'));
+            document.getElementById(id).classList.remove('gizli');
+            if(id === 'ana-ekran') arayuzGuncelle();
+            if(id === 'kutuphane-ekrani') kListele();
+            if(id === 'tuketim-ekrani') tDoldur();
         }
 
-        // 3. BESİN LİSTESİ (KÜTÜPHANE) İŞLEMLERİ
-        
-        function renderFoods() {
-            const listEl = document.getElementById('foodList');
-            listEl.innerHTML = '';
+        // 1. PROFİL VE HESAPLAMA SİSTEMİ
+        function profilKaydet() {
+            let cins = document.getElementById('pr-cinsiyet').value;
+            let yas = parseFloat(document.getElementById('pr-yas').value);
+            let boy = parseFloat(document.getElementById('pr-boy').value);
+            let kilo = parseFloat(document.getElementById('pr-kilo').value);
+            let hare = parseFloat(document.getElementById('pr-hareket').value);
             
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            
-            // Alfabetik sıralama ve arama filtresi
-            const filteredFoods = foods
-                .filter(food => food.name.toLowerCase().includes(searchTerm))
-                .sort((a, b) => a.name.localeCompare(b.name));
+            if(!yas || !boy || !kilo) { alert("Lütfen yaş, boy ve kilonuzu eksiksiz girin."); return; }
 
-            filteredFoods.forEach(food => {
-                const card = document.createElement('div');
-                card.className = "bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center";
-                card.innerHTML = `
-                    <div class="flex-1">
-                        <h4 class="font-bold text-gray-800 text-sm">${food.name}</h4>
-                        <p class="text-xs text-gray-400 mt-1">100g: ${food.cal} kcal | P:${food.pro} K:${food.carb} Y:${food.fat}</p>
-                    </div>
-                    <button onclick="openGramModal(${food.id})" class="w-10 h-10 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center font-bold text-lg active:bg-blue-100 transition">
-                        <i class="fa-solid fa-plus"></i>
-                    </button>
-                `;
-                listEl.appendChild(card);
+            // Mifflin-St Jeor Formülü
+            let bmr = cins === 'erkek' ? (10*kilo) + (6.25*boy) - (5*yas) + 5 : (10*kilo) + (6.25*boy) - (5*yas) - 161;
+            let kalori = Math.round(bmr * hare);
+            let p_hedef = Math.round(kilo * 2.2); // Spora uygun yüksek protein
+            let y_hedef = Math.round((kalori * 0.25) / 9); // Kalorinin %25'i yağ
+            let k_hedef = Math.round((kalori - (p_hedef*4) - (y_hedef*9)) / 4);
+
+            profil = { kalori, pro: p_hedef, yag: y_hedef, karb: k_hedef };
+            localStorage.setItem('df_profil', JSON.stringify(profil));
+            sayfaGoster('ana-ekran');
+        }
+
+        // 2. KÜTÜPHANE İŞLEMLERİ (CRUD)
+        function kListele() {
+            const liste = document.getElementById('kutuphane-listesi');
+            liste.innerHTML = '';
+            besinler.forEach(b => {
+                liste.innerHTML += `
+                    <div class="liste-elemani">
+                        <div style="flex:1;">
+                            <strong style="color:var(--vurgu-renk);">${b.ad}</strong>
+                            <span class="liste-detay">${b.ref} birim | ${b.cal} kcal | P:${b.pro} Y:${b.yag} K:${b.karb}</span>
+                        </div>
+                        <div class="buton-grubu">
+                            <button class="btn-duzenle" onclick="besinDuzenle(${b.id})">✎</button>
+                            <button class="btn-tehlike" onclick="besinSil(${b.id})">✖</button>
+                        </div>
+                    </div>`;
             });
         }
 
-        function filterFoods() {
-            renderFoods();
+        function besinFormuAc() {
+            document.querySelectorAll('#besin-form-ekrani input').forEach(inp => inp.value = '');
+            sayfaGoster('besin-form-ekrani');
         }
 
-        // 4. BESİN EKLEME EKRANI KONTROLLERİ (Yeni ürün)
-        function openNewFoodModal() {
-            document.getElementById('newFoodModal').classList.replace('hidden', 'flex');
-        }
-        function closeNewFoodModal() {
-            document.getElementById('newFoodModal').classList.replace('flex', 'hidden');
-            // Formu temizle
-            document.getElementById('newFoodName').value = '';
-            document.getElementById('newFoodCal').value = '';
-            document.getElementById('newFoodPro').value = '';
-            document.getElementById('newFoodCarb').value = '';
-            document.getElementById('newFoodFat').value = '';
-        }
-
-        function saveNewFood() {
-            const name = document.getElementById('newFoodName').value;
-            const cal = parseFloat(document.getElementById('newFoodCal').value);
-            const pro = parseFloat(document.getElementById('newFoodPro').value);
-            const carb = parseFloat(document.getElementById('newFoodCarb').value);
-            const fat = parseFloat(document.getElementById('newFoodFat').value);
-
-            if(!name || isNaN(cal)) {
-                alert("Lütfen en azından isim ve kalori bilgisini doldurun.");
-                return;
-            }
-
-            const newFood = {
-                id: Date.now(), // Benzersiz kimlik
-                name: name,
-                cal: cal,
-                pro: pro || 0,
-                carb: carb || 0,
-                fat: fat || 0
+        function besinKaydet() {
+            let id = document.getElementById('b-id').value;
+            let yeni = {
+                id: id ? parseInt(id) : Date.now(),
+                ad: document.getElementById('b-ad').value,
+                ref: parseFloat(document.getElementById('b-ref').value),
+                cal: parseFloat(document.getElementById('b-cal').value),
+                pro: parseFloat(document.getElementById('b-pro').value),
+                yag: parseFloat(document.getElementById('b-yag').value),
+                karb: parseFloat(document.getElementById('b-karb').value)
             };
-
-            foods.push(newFood);
-            localStorage.setItem('macroFoods', JSON.stringify(foods)); // Hafızaya kaydet
-            closeNewFoodModal();
-            renderFoods();
-        }
-
-
-        // 5. TÜKETİM (GRAM GİRME) KONTROLLERİ
-        
-        function openGramModal(foodId) {
-            const food = foods.find(f => f.id === foodId);
-            document.getElementById('modalFoodName').innerText = food.name;
-            document.getElementById('selectedFoodId').value = food.id;
-            document.getElementById('gramInput').value = '';
-            document.getElementById('gramModal').classList.replace('hidden', 'flex');
-            setTimeout(() => document.getElementById('gramInput').focus(), 100);
-        }
-
-        function closeGramModal() {
-            document.getElementById('gramModal').classList.replace('flex', 'hidden');
-        }
-
-        function saveConsumption() {
-            const grams = parseFloat(document.getElementById('gramInput').value);
-            if(isNaN(grams) || grams <= 0) {
-                alert("Lütfen geçerli bir gram giriniz.");
-                return;
-            }
-
-            const foodId = parseInt(document.getElementById('selectedFoodId').value);
-            const food = foods.find(f => f.id === foodId);
-
-            // Uygulamanın beyni: Matematik formülü (100 gram üzerinden orantı)
-            const multiplier = grams / 100;
-            const logEntry = {
-                logId: Date.now(),
-                date: new Date().toLocaleDateString('tr-TR'), // Bugünün tarihi (Örn: 15.08.2024)
-                timestamp: new Date().getTime(),
-                foodName: food.name,
-                grams: grams,
-                cal: Math.round(food.cal * multiplier),
-                pro: (food.pro * multiplier).toFixed(1),
-                carb: (food.carb * multiplier).toFixed(1),
-                fat: (food.fat * multiplier).toFixed(1)
-            };
-
-            consumedLogs.push(logEntry);
-            localStorage.setItem('macroLogs', JSON.stringify(consumedLogs)); // Hafızaya kaydet
+            if(id) { besinler[besinler.findIndex(x => x.id == id)] = yeni; } 
+            else { besinler.push(yeni); }
             
-            closeGramModal();
-            switchTab('daily', 'Günlük Özet'); // Ana sayfaya geri dön
+            localStorage.setItem('df_besinler', JSON.stringify(besinler));
+            sayfaGoster('kutuphane-ekrani');
         }
 
-        // 6. GÜNLÜK ÖZET (ANA SAYFA) HESAPLAMALARI
-        
-        function renderDailySummary() {
-            const todayStr = new Date().toLocaleDateString('tr-TR');
-            // Sadece bugünün kayıtlarını filtrele
-            const todaysLogs = consumedLogs.filter(log => log.date === todayStr);
+        function besinDuzenle(id) {
+            let b = besinler.find(x => x.id === id);
+            document.getElementById('b-id').value = b.id;
+            document.getElementById('b-ad').value = b.ad;
+            document.getElementById('b-ref').value = b.ref;
+            document.getElementById('b-cal').value = b.cal;
+            document.getElementById('b-pro').value = b.pro;
+            document.getElementById('b-yag').value = b.yag;
+            document.getElementById('b-karb').value = b.karb;
+            sayfaGoster('besin-form-ekrani');
+        }
 
-            // Toplamları hesapla
-            let tCal = 0, tPro = 0, tCarb = 0, tFat = 0;
+        function besinSil(id) {
+            if(confirm("Bu yiyeceği kütüphaneden tamamen silmek istiyor musun?")) {
+                besinler = besinler.filter(x => x.id !== id);
+                localStorage.setItem('df_besinler', JSON.stringify(besinler));
+                kListele();
+            }
+        }
+
+        // 3. GÜNLÜK TÜKETİM
+        function tDoldur() {
+            let sec = document.getElementById('t-secim');
+            sec.innerHTML = '<option value="">-- Besin Seç --</option>';
+            besinler.forEach(b => sec.innerHTML += `<option value="${b.id}">${b.ad}</option>`);
+        }
+
+        function tuketimKaydet() {
+            let id = document.getElementById('t-secim').value;
+            let mik = parseFloat(document.getElementById('t-miktar').value);
+            if(!id || !mik) return alert("Eksik bilgi girdiniz.");
             
-            const listEl = document.getElementById('dailyLogList');
-            listEl.innerHTML = '';
-
-            if(todaysLogs.length === 0) {
-                listEl.innerHTML = '<p class="text-sm text-gray-400 text-center py-4 bg-white rounded-xl border border-dashed border-gray-300">Henüz bir besin girmedin.</p>';
-            } else {
-                // Yeniden eskiye sırala
-                todaysLogs.sort((a,b) => b.timestamp - a.timestamp).forEach(log => {
-                    tCal += log.cal;
-                    tPro += parseFloat(log.pro);
-                    tCarb += parseFloat(log.carb);
-                    tFat += parseFloat(log.fat);
-
-                    // Listeye eleman ekleme
-                    const item = document.createElement('div');
-                    item.className = "bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center";
-                    item.innerHTML = `
-                        <div>
-                            <h4 class="font-bold text-gray-800 text-sm">${log.foodName} <span class="text-xs font-normal text-gray-400 ml-1">(${log.grams}g)</span></h4>
-                            <p class="text-xs text-gray-500 mt-1">P:${log.pro} K:${log.carb} Y:${log.fat}</p>
-                        </div>
-                        <div class="flex items-center space-x-3">
-                            <div class="text-right">
-                                <span class="block font-bold text-blue-600 text-sm">${log.cal}</span>
-                                <span class="text-[10px] text-gray-400">kcal</span>
-                            </div>
-                            <button onclick="deleteLog(${log.logId})" class="text-red-400 hover:text-red-600 pl-2 border-l border-gray-100 p-2">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </button>
-                        </div>
-                    `;
-                    listEl.appendChild(item);
-                });
-            }
-
-            // Toplam değerleri ekrana yazdır
-            document.getElementById('totalKcal').innerText = tCal;
-            document.getElementById('totalPro').innerText = Math.round(tPro);
-            document.getElementById('totalCarb').innerText = Math.round(tCarb);
-            document.getElementById('totalFat').innerText = Math.round(tFat);
+            let b = besinler.find(x => x.id == id);
+            let carpan = mik / b.ref; // Meşhur Excel formülümüz
+            
+            bugunYenenler.push({
+                id: Date.now(), ad: b.ad, miktar: mik,
+                cal: Math.round(b.cal * carpan), pro: (b.pro * carpan).toFixed(1),
+                yag: (b.yag * carpan).toFixed(1), karb: (b.karb * carpan).toFixed(1)
+            });
+            
+            localStorage.setItem('df_gunluk', JSON.stringify(bugunYenenler));
+            document.getElementById('t-miktar').value = '';
+            sayfaGoster('ana-ekran');
         }
 
-        // Yanlış eklenen kaydı silme
-        function deleteLog(logId) {
-            if(confirm("Bu kaydı silmek istediğine emin misin?")) {
-                consumedLogs = consumedLogs.filter(log => log.logId !== logId);
-                localStorage.setItem('macroLogs', JSON.stringify(consumedLogs));
-                renderDailySummary();
+        function arayuzGuncelle() {
+            let tCal = 0, tPro = 0, tYag = 0, tKarb = 0;
+            let liste = document.getElementById('yenenler-listesi');
+            liste.innerHTML = '';
+
+            bugunYenenler.forEach(t => {
+                tCal += parseFloat(t.cal); tPro += parseFloat(t.pro); tYag += parseFloat(t.yag); tKarb += parseFloat(t.karb);
+                liste.innerHTML += `
+                    <div class="liste-elemani" style="border-left-color:var(--basari-renk);">
+                        <div><strong>${t.ad}</strong><span class="liste-detay">${t.miktar} birim</span></div>
+                        <div style="text-align:right;"><strong>${t.cal} kcal</strong><span class="liste-detay">P:${t.pro} Y:${t.yag} K:${t.karb}</span></div>
+                    </div>`;
+            });
+
+            document.getElementById('gun-kalori').innerText = Math.round(tCal);
+            document.getElementById('gun-protein').innerText = Math.round(tPro);
+            document.getElementById('gun-yag').innerText = Math.round(tYag);
+            document.getElementById('gun-karb').innerText = Math.round(tKarb);
+
+            if(profil) {
+                document.getElementById('hedef-kalori').innerText = `Hedef: ${profil.kalori}`;
+                document.getElementById('hedef-protein').innerText = `Hedef: ${profil.pro}g`;
+                document.getElementById('hedef-yag').innerText = `Hedef: ${profil.yag}g`;
+                document.getElementById('hedef-karb').innerText = `Hedef: ${profil.karb}g`;
             }
         }
 
-        // UYGULAMA AÇILDIĞINDA ÇALIŞTIRILACAK İLK KOD
-        window.onload = () => {
-            renderDailySummary();
-        };
-
+        // BAŞLANGIÇ KONTROLÜ
+        if(!profil) { sayfaGoster('profil-ekrani'); } else { sayfaGoster('ana-ekran'); }
     </script>
 </body>
 </html>
