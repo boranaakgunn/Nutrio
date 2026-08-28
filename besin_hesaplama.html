@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <!-- Mobil cihazlarda tam ekran uygulama gibi görünmesi için gerekli ayarlar -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Makro Takip</title>
+    <!-- Tasarım için Tailwind CSS kütüphanesini kullanıyoruz -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- İkonlar için FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* iOS tarzı yumuşak dokunuşlar ve geçişler */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent; /* Tıklama pırpırını kaldırır */
+        }
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Modal (Açılır Pencere) arka planı */
+        .modal-bg {
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+        }
+        /* Alt navigasyon barı için boşluk */
+        .pb-safe { padding-bottom: 90px; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 h-screen overflow-x-hidden pb-safe">
+
+    <!-- ÜST BAŞLIK -->
+    <header class="bg-white shadow-sm pt-12 pb-4 px-6 sticky top-0 z-10">
+        <h1 class="text-2xl font-bold text-gray-900" id="headerTitle">Günlük Özet</h1>
+    </header>
+
+    <!-- SAYFA 1: GÜNLÜK TÜKETİM ÖZETİ -->
+    <main id="tab-daily" class="tab-content active p-4 space-y-6">
+        
+        <!-- Günlük Toplam Makro Kartları -->
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-blue-500 rounded-2xl p-4 text-white shadow-md">
+                <p class="text-sm opacity-80 font-medium">Toplam Kalori</p>
+                <div class="text-3xl font-bold mt-1" id="totalKcal">0</div>
+                <p class="text-xs mt-1">kcal</p>
+            </div>
+            
+            <div class="grid grid-rows-3 gap-2">
+                <div class="bg-white rounded-xl p-2 flex justify-between items-center shadow-sm border border-gray-100">
+                    <span class="text-xs font-semibold text-gray-500">Protein</span>
+                    <span class="font-bold text-red-500 text-sm"><span id="totalPro">0</span>g</span>
+                </div>
+                <div class="bg-white rounded-xl p-2 flex justify-between items-center shadow-sm border border-gray-100">
+                    <span class="text-xs font-semibold text-gray-500">Karb</span>
+                    <span class="font-bold text-green-500 text-sm"><span id="totalCarb">0</span>g</span>
+                </div>
+                <div class="bg-white rounded-xl p-2 flex justify-between items-center shadow-sm border border-gray-100">
+                    <span class="text-xs font-semibold text-gray-500">Yağ</span>
+                    <span class="font-bold text-yellow-500 text-sm"><span id="totalFat">0</span>g</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bugün Yenilenler Listesi -->
+        <div>
+            <h2 class="text-lg font-bold text-gray-800 mb-3">Bugün Tüketilenler</h2>
+            <div id="dailyLogList" class="space-y-3">
+                <!-- Tüketilen besinler buraya JavaScript ile eklenecek -->
+                <p class="text-sm text-gray-400 text-center py-4">Henüz bir besin eklemedin. Menüden listeye gidip tüketim ekleyebilirsin.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- SAYFA 2: BESİN LİSTESİ (EXCEL'İN KARŞILIĞI) -->
+    <main id="tab-foods" class="tab-content p-4 space-y-4">
+        
+        <div class="flex justify-between items-center mb-2">
+            <h2 class="text-lg font-bold text-gray-800">Kütüphane (100g Değerleri)</h2>
+            <button onclick="openNewFoodModal()" class="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm">
+                <i class="fa-solid fa-plus mr-1"></i> Yeni Ekle
+            </button>
+        </div>
+
+        <!-- Arama Çubuğu -->
+        <div class="relative">
+            <i class="fa-solid fa-search absolute left-4 top-3.5 text-gray-400"></i>
+            <input type="text" id="searchInput" onkeyup="filterFoods()" placeholder="Besin ara..." class="w-full bg-white border-none rounded-xl py-3 pl-10 pr-4 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+        </div>
+
+        <div id="foodList" class="space-y-3 pb-6">
+            <!-- Besin Kütüphanesi buraya JavaScript ile eklenecek -->
+        </div>
+    </main>
+
+
+    <!-- ALT NAVİGASYON BARI -->
+    <nav class="fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around items-center pb-8 pt-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
+        <button onclick="switchTab('daily', 'Günlük Özet')" id="nav-daily" class="flex flex-col items-center text-blue-500">
+            <i class="fa-solid fa-chart-pie text-xl mb-1"></i>
+            <span class="text-[10px] font-semibold">Günlük</span>
+        </button>
+        <button onclick="switchTab('foods', 'Besin Listesi')" id="nav-foods" class="flex flex-col items-center text-gray-400">
+            <i class="fa-solid fa-list-ul text-xl mb-1"></i>
+            <span class="text-[10px] font-semibold">Liste</span>
+        </button>
+    </nav>
+
+
+    <!-- MODAL 1: GRAM GİRME EKRANI (Ürün Tüketme) -->
+    <div id="gramModal" class="fixed inset-0 modal-bg hidden items-center justify-center z-50 px-4">
+        <div class="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl transform transition-all">
+            <h3 class="text-xl font-bold text-gray-900 mb-1" id="modalFoodName">Ürün Adı</h3>
+            <p class="text-sm text-gray-500 mb-6">Ne kadar tükettin?</p>
+            
+            <div class="flex items-center justify-center space-x-2 mb-6">
+                <input type="number" id="gramInput" class="text-center text-4xl font-bold w-24 border-b-2 border-blue-500 focus:outline-none text-gray-800" placeholder="0">
+                <span class="text-xl font-bold text-gray-400">gr</span>
+            </div>
+
+            <div class="flex space-x-3">
+                <button onclick="closeGramModal()" class="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-bold">İptal</button>
+                <button onclick="saveConsumption()" class="flex-1 bg-blue-500 text-white py-3 rounded-xl font-bold shadow-md">Kaydet</button>
+            </div>
+            <!-- Hangi yemeğin seçili olduğunu hafızada tutmak için gizli input -->
+            <input type="hidden" id="selectedFoodId">
+        </div>
+    </div>
+
+
+    <!-- MODAL 2: YENİ BESİN EKLEME EKRANI (Kütüphaneye ekleme) -->
+    <div id="newFoodModal" class="fixed inset-0 modal-bg hidden flex-col items-center justify-end z-50">
+        <div class="bg-white rounded-t-3xl w-full h-[85vh] p-6 shadow-2xl flex flex-col">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-gray-900">Yeni Besin Ekle</h3>
+                <button onclick="closeNewFoodModal()" class="bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center text-gray-600"><i class="fa-solid fa-times"></i></button>
+            </div>
+            
+            <p class="text-sm text-gray-500 mb-4 border-l-4 border-blue-500 pl-3">Değerleri her zaman <b>100 gram</b> ürün için giriniz. Uygulama matematiği otomatik yapacaktır.</p>
+
+            <div class="space-y-4 overflow-y-auto flex-1 pb-4">
+                <div>
+                    <label class="text-xs font-bold text-gray-600 uppercase">Besin Adı (Örn: Yulaf)</label>
+                    <input type="text" id="newFoodName" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mt-1 outline-none focus:border-blue-500">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs font-bold text-gray-600 uppercase">Kalori (kcal)</label>
+                        <input type="number" id="newFoodCal" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mt-1 outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-600 uppercase">Protein (g)</label>
+                        <input type="number" id="newFoodPro" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mt-1 outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-600 uppercase">Karbonhidrat (g)</label>
+                        <input type="number" id="newFoodCarb" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mt-1 outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-600 uppercase">Yağ (g)</label>
+                        <input type="number" id="newFoodFat" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mt-1 outline-none focus:border-blue-500">
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="saveNewFood()" class="w-full bg-blue-500 text-white py-4 rounded-xl font-bold shadow-md mt-4">Kütüphaneye Kaydet</button>
+        </div>
+    </div>
+
+
+    <!-- JAVASCRIPT: Uygulamanın Beyni -->
+    <script>
+        // 1. UYGULAMA HAFIZASI (Local Storage Kullanarak Telefonun Hafızasına Kaydetme)
+        
+        // Örnek başlangıç besinleri (Eğer hafıza boşsa)
+        const defaultFoods = [
+            { id: 1, name: "Yulaf Ezmesi", cal: 370, pro: 13, carb: 60, fat: 7 },
+            { id: 2, name: "Tavuk Göğsü (Pişmiş)", cal: 165, pro: 31, carb: 0, fat: 3.6 },
+            { id: 3, name: "Pilav (Pişmiş)", cal: 130, pro: 2.7, carb: 28, fat: 0.3 },
+            { id: 4, name: "Yumurta (Adet ~50g)", cal: 155, pro: 13, carb: 1.1, fat: 11 } // Değerler 100g üzerinden
+        ];
+
+        // Verileri telefon hafızasından çek, yoksa boş veya varsayılan oluştur
+        let foods = JSON.parse(localStorage.getItem('macroFoods')) || defaultFoods;
+        let consumedLogs = JSON.parse(localStorage.getItem('macroLogs')) || [];
+
+        // 2. ARAYÜZ (GÖRÜNÜM) KONTROLLERİ
+        
+        // Alt sekmeler arası geçiş
+        function switchTab(tabId, title) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            
+            document.getElementById('headerTitle').innerText = title;
+
+            // Navigasyon ikon renklerini güncelle
+            document.getElementById('nav-daily').classList.replace('text-blue-500', 'text-gray-400');
+            document.getElementById('nav-foods').classList.replace('text-blue-500', 'text-gray-400');
+            document.getElementById('nav-' + tabId).classList.replace('text-gray-400', 'text-blue-500');
+
+            if(tabId === 'foods') renderFoods();
+            if(tabId === 'daily') renderDailySummary();
+        }
+
+        // 3. BESİN LİSTESİ (KÜTÜPHANE) İŞLEMLERİ
+        
+        function renderFoods() {
+            const listEl = document.getElementById('foodList');
+            listEl.innerHTML = '';
+            
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            // Alfabetik sıralama ve arama filtresi
+            const filteredFoods = foods
+                .filter(food => food.name.toLowerCase().includes(searchTerm))
+                .sort((a, b) => a.name.localeCompare(b.name));
+
+            filteredFoods.forEach(food => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center";
+                card.innerHTML = `
+                    <div class="flex-1">
+                        <h4 class="font-bold text-gray-800 text-sm">${food.name}</h4>
+                        <p class="text-xs text-gray-400 mt-1">100g: ${food.cal} kcal | P:${food.pro} K:${food.carb} Y:${food.fat}</p>
+                    </div>
+                    <button onclick="openGramModal(${food.id})" class="w-10 h-10 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center font-bold text-lg active:bg-blue-100 transition">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                `;
+                listEl.appendChild(card);
+            });
+        }
+
+        function filterFoods() {
+            renderFoods();
+        }
+
+        // 4. BESİN EKLEME EKRANI KONTROLLERİ (Yeni ürün)
+        function openNewFoodModal() {
+            document.getElementById('newFoodModal').classList.replace('hidden', 'flex');
+        }
+        function closeNewFoodModal() {
+            document.getElementById('newFoodModal').classList.replace('flex', 'hidden');
+            // Formu temizle
+            document.getElementById('newFoodName').value = '';
+            document.getElementById('newFoodCal').value = '';
+            document.getElementById('newFoodPro').value = '';
+            document.getElementById('newFoodCarb').value = '';
+            document.getElementById('newFoodFat').value = '';
+        }
+
+        function saveNewFood() {
+            const name = document.getElementById('newFoodName').value;
+            const cal = parseFloat(document.getElementById('newFoodCal').value);
+            const pro = parseFloat(document.getElementById('newFoodPro').value);
+            const carb = parseFloat(document.getElementById('newFoodCarb').value);
+            const fat = parseFloat(document.getElementById('newFoodFat').value);
+
+            if(!name || isNaN(cal)) {
+                alert("Lütfen en azından isim ve kalori bilgisini doldurun.");
+                return;
+            }
+
+            const newFood = {
+                id: Date.now(), // Benzersiz kimlik
+                name: name,
+                cal: cal,
+                pro: pro || 0,
+                carb: carb || 0,
+                fat: fat || 0
+            };
+
+            foods.push(newFood);
+            localStorage.setItem('macroFoods', JSON.stringify(foods)); // Hafızaya kaydet
+            closeNewFoodModal();
+            renderFoods();
+        }
+
+
+        // 5. TÜKETİM (GRAM GİRME) KONTROLLERİ
+        
+        function openGramModal(foodId) {
+            const food = foods.find(f => f.id === foodId);
+            document.getElementById('modalFoodName').innerText = food.name;
+            document.getElementById('selectedFoodId').value = food.id;
+            document.getElementById('gramInput').value = '';
+            document.getElementById('gramModal').classList.replace('hidden', 'flex');
+            setTimeout(() => document.getElementById('gramInput').focus(), 100);
+        }
+
+        function closeGramModal() {
+            document.getElementById('gramModal').classList.replace('flex', 'hidden');
+        }
+
+        function saveConsumption() {
+            const grams = parseFloat(document.getElementById('gramInput').value);
+            if(isNaN(grams) || grams <= 0) {
+                alert("Lütfen geçerli bir gram giriniz.");
+                return;
+            }
+
+            const foodId = parseInt(document.getElementById('selectedFoodId').value);
+            const food = foods.find(f => f.id === foodId);
+
+            // Uygulamanın beyni: Matematik formülü (100 gram üzerinden orantı)
+            const multiplier = grams / 100;
+            const logEntry = {
+                logId: Date.now(),
+                date: new Date().toLocaleDateString('tr-TR'), // Bugünün tarihi (Örn: 15.08.2024)
+                timestamp: new Date().getTime(),
+                foodName: food.name,
+                grams: grams,
+                cal: Math.round(food.cal * multiplier),
+                pro: (food.pro * multiplier).toFixed(1),
+                carb: (food.carb * multiplier).toFixed(1),
+                fat: (food.fat * multiplier).toFixed(1)
+            };
+
+            consumedLogs.push(logEntry);
+            localStorage.setItem('macroLogs', JSON.stringify(consumedLogs)); // Hafızaya kaydet
+            
+            closeGramModal();
+            switchTab('daily', 'Günlük Özet'); // Ana sayfaya geri dön
+        }
+
+        // 6. GÜNLÜK ÖZET (ANA SAYFA) HESAPLAMALARI
+        
+        function renderDailySummary() {
+            const todayStr = new Date().toLocaleDateString('tr-TR');
+            // Sadece bugünün kayıtlarını filtrele
+            const todaysLogs = consumedLogs.filter(log => log.date === todayStr);
+
+            // Toplamları hesapla
+            let tCal = 0, tPro = 0, tCarb = 0, tFat = 0;
+            
+            const listEl = document.getElementById('dailyLogList');
+            listEl.innerHTML = '';
+
+            if(todaysLogs.length === 0) {
+                listEl.innerHTML = '<p class="text-sm text-gray-400 text-center py-4 bg-white rounded-xl border border-dashed border-gray-300">Henüz bir besin girmedin.</p>';
+            } else {
+                // Yeniden eskiye sırala
+                todaysLogs.sort((a,b) => b.timestamp - a.timestamp).forEach(log => {
+                    tCal += log.cal;
+                    tPro += parseFloat(log.pro);
+                    tCarb += parseFloat(log.carb);
+                    tFat += parseFloat(log.fat);
+
+                    // Listeye eleman ekleme
+                    const item = document.createElement('div');
+                    item.className = "bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center";
+                    item.innerHTML = `
+                        <div>
+                            <h4 class="font-bold text-gray-800 text-sm">${log.foodName} <span class="text-xs font-normal text-gray-400 ml-1">(${log.grams}g)</span></h4>
+                            <p class="text-xs text-gray-500 mt-1">P:${log.pro} K:${log.carb} Y:${log.fat}</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="text-right">
+                                <span class="block font-bold text-blue-600 text-sm">${log.cal}</span>
+                                <span class="text-[10px] text-gray-400">kcal</span>
+                            </div>
+                            <button onclick="deleteLog(${log.logId})" class="text-red-400 hover:text-red-600 pl-2 border-l border-gray-100 p-2">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    `;
+                    listEl.appendChild(item);
+                });
+            }
+
+            // Toplam değerleri ekrana yazdır
+            document.getElementById('totalKcal').innerText = tCal;
+            document.getElementById('totalPro').innerText = Math.round(tPro);
+            document.getElementById('totalCarb').innerText = Math.round(tCarb);
+            document.getElementById('totalFat').innerText = Math.round(tFat);
+        }
+
+        // Yanlış eklenen kaydı silme
+        function deleteLog(logId) {
+            if(confirm("Bu kaydı silmek istediğine emin misin?")) {
+                consumedLogs = consumedLogs.filter(log => log.logId !== logId);
+                localStorage.setItem('macroLogs', JSON.stringify(consumedLogs));
+                renderDailySummary();
+            }
+        }
+
+        // UYGULAMA AÇILDIĞINDA ÇALIŞTIRILACAK İLK KOD
+        window.onload = () => {
+            renderDailySummary();
+        };
+
+    </script>
+</body>
+</html>
