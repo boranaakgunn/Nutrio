@@ -5,64 +5,73 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Nutrio</title>
     <style>
-        /* MODERN UI TASARIMI (CSS) */
+        /* MODERN UI TASARIMI: Spotify Gece Modu & Apple Health Kartları */
         :root {
-            --arkaplan: #F4F7F6;
-            --kart-arkaplan: #FFFFFF;
-            --vurgu-renk: #4361EE; /* Elektrik Mavisi */
-            --basari-renk: #2EC4B6; /* Zümrüt Yeşili */
-            --tehlike-renk: #E71D36; /* Kırmızı */
-            --yazi-ana: #2B2D42;
-            --yazi-pasif: #8D99AE;
-            --golge: 0 10px 20px rgba(0,0,0,0.05);
-            --kose-yuvarlama: 16px;
+            --arkaplan: #000000; /* Gece Yarısı Siyahı */
+            --kart-arkaplan: #1C1C1E; /* Koyu Antrasit Gri */
+            --vurgu-renk: #1DB954; /* Spotify Neon Yeşili */
+            --vurgu-yazi: #000000; /* Neon Üzeri Siyah Yazı */
+            --basari-renk: #32D74B; 
+            --tehlike-renk: #FF453A; 
+            --yazi-ana: #FFFFFF; /* Bembeyaz Okunabilir Yazılar */
+            --yazi-pasif: #8E8E93; /* Gümüş Grisi Alt Metinler */
+            --golge: 0 8px 24px rgba(0,0,0,0.8);
+            --kose-yuvarlama: 24px; /* Apple Sağlık Tarzı Ekstra Oval */
         }
 
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--arkaplan); color: var(--yazi-ana); margin: 0; padding: 20px; padding-bottom: 100px; }
-        h1, h2 { text-align: center; margin-bottom: 15px; }
+        h1, h2 { text-align: center; margin-bottom: 15px; font-weight: 800; letter-spacing: -0.5px;}
         .gizli { display: none !important; }
 
-        /* Kart ve Kutu Tasarımları (Derinlik) */
-        .kart { background: var(--kart-arkaplan); padding: 20px; border-radius: var(--kose-yuvarlama); box-shadow: var(--golge); margin-bottom: 20px; }
-        .liste-elemani { background: var(--kart-arkaplan); padding: 15px; border-radius: 12px; margin-bottom: 12px; box-shadow: var(--golge); display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--vurgu-renk); }
-        .liste-detay { font-size: 13px; color: var(--yazi-pasif); margin-top: 5px; display: block; }
+        /* Kart Tasarımları */
+        .kart { background: var(--kart-arkaplan); padding: 22px; border-radius: var(--kose-yuvarlama); box-shadow: var(--golge); margin-bottom: 20px; }
+        .liste-elemani { background: var(--kart-arkaplan); padding: 16px; border-radius: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--vurgu-renk); }
+        .liste-detay { font-size: 13px; color: var(--yazi-pasif); margin-top: 5px; display: block; font-weight: 500;}
         
         /* Skor Tabelası */
-        .skor-paneli { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; }
-        .skor-kutu { flex: 1 1 45%; text-align: center; background: var(--arkaplan); padding: 15px 5px; border-radius: 12px; }
-        .skor-kutu strong { display: block; font-size: 24px; color: var(--vurgu-renk); }
-        .hedef-yazi { font-size: 11px; color: var(--yazi-pasif); display: block; margin-top: 3px; }
+        .skor-paneli { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; }
+        .skor-kutu { flex: 1 1 45%; text-align: center; background: #2C2C2E; padding: 18px 5px; border-radius: 16px; }
+        .skor-kutu strong { display: block; font-size: 26px; color: var(--vurgu-renk); font-weight: 900;}
+        .hedef-yazi { font-size: 12px; color: var(--yazi-pasif); display: block; margin-top: 4px; font-weight: 600;}
 
-        /* Düğmeler (Köşe Yuvarlatma ve Vurgu) */
-        button { background-color: var(--vurgu-renk); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; transition: 0.3s; }
-        button:active { transform: scale(0.98); }
-        .btn-tehlike { background-color: var(--tehlike-renk); width: auto; padding: 10px 14px; margin-top: 0; }
-        .btn-duzenle { background-color: var(--basari-renk); width: auto; padding: 10px 14px; margin-top: 0; margin-right: 5px; }
-        .btn-ikincil { background-color: var(--yazi-pasif); }
+        /* Düğmeler (Tam Oval / Kapsül Şekli) */
+        button { background-color: var(--vurgu-renk); color: var(--vurgu-yazi); border: none; padding: 18px; border-radius: 50px; font-size: 16px; font-weight: 800; width: 100%; margin-top: 10px; cursor: pointer; transition: transform 0.2s; }
+        button:active { transform: scale(0.96); }
+        .btn-tehlike { background-color: var(--tehlike-renk); color: white; width: auto; padding: 10px 16px; margin-top: 0; }
+        .btn-duzenle { background-color: #3A3A3C; color: white; width: auto; padding: 10px 16px; margin-top: 0; margin-right: 5px; }
+        .btn-ikincil { background-color: #2C2C2E; color: var(--yazi-ana); }
         .buton-grubu { display: flex; gap: 5px; }
 
-        /* Girdi Alanları (Nefes Alanı) */
-        input, select { width: 100%; padding: 14px; margin-bottom: 15px; border: 1px solid #DFE2E6; border-radius: 10px; font-size: 16px; box-sizing: border-box; background-color: #FAFAFA; outline: none; }
+        /* Girdi Alanları */
+        input, select { width: 100%; padding: 16px; margin-bottom: 15px; border: 2px solid transparent; border-radius: 16px; font-size: 16px; font-weight: 600; box-sizing: border-box; background-color: #2C2C2E; color: var(--yazi-ana); outline: none; transition: 0.3s;}
         input:focus, select:focus { border-color: var(--vurgu-renk); }
-        label { font-size: 14px; font-weight: bold; color: var(--yazi-ana); display: block; margin-bottom: 5px; }
+        label { font-size: 14px; font-weight: 700; color: var(--yazi-pasif); display: block; margin-bottom: 6px; margin-left: 4px;}
+        
+        /* Profil Seçici Başlık Modülü */
+        .profil-header { display: flex; gap: 10px; margin-bottom: 20px; align-items: center;}
+        .profil-header select { margin-bottom: 0; padding: 12px; border-radius: 50px; background-color: var(--vurgu-renk); color: var(--vurgu-yazi); font-weight: 800;}
+        .profil-header button { margin-top: 0; padding: 12px; width: 120px; font-size: 14px;}
+        
+        .gecmis-tarih { background: #2C2C2E; color: var(--vurgu-renk); padding: 8px 16px; border-radius: 50px; font-size: 14px; font-weight: bold; margin-top: 25px; margin-bottom: 10px; display: inline-block; }
     </style>
 </head>
 <body>
 
     <!-- 0. KULLANICI PROFİLİ SİHİRBAZI -->
     <div id="profil-ekrani" class="gizli kart">
-        <h1>Hedeflerini Belirle</h1>
-        <p style="text-align:center; font-size:14px; color:#8D99AE;">Günlük ihtiyacını bilimsel olarak hesaplayalım.</p>
+        <h1>Yeni Kişi Ekle</h1>
+        <p style="text-align:center; font-size:14px; color:var(--yazi-pasif);">Kişisel hesaplama çekmeceni oluşturalım.</p>
+        
+        <label>Profil Adı</label>
+        <input type="text" id="pr-ad" placeholder="Örn: Ahmet veya A Kişisi">
         
         <label>Cinsiyet</label>
         <select id="pr-cinsiyet"><option value="erkek">Erkek</option><option value="kadin">Kadın</option></select>
         
         <label>Yaş</label>
         <input type="number" id="pr-yas" placeholder="Örn: 25">
-        
         <label>Boy (cm)</label>
         <input type="number" id="pr-boy" placeholder="Örn: 175">
-        
         <label>Kilo (kg)</label>
         <input type="number" id="pr-kilo" placeholder="Örn: 70">
         
@@ -74,12 +83,19 @@
             <option value="1.725">Haftada 6-7 Gün Ağır Antrenman</option>
         </select>
         
-        <button onclick="profilKaydet()">Hesapla ve Başla</button>
+        <button onclick="profilKaydet()">Profili Yarat ve Başla</button>
+        <button class="btn-ikincil gizli" id="iptal-profil-btn" onclick="sayfaGoster('ana-ekran')">İptal</button>
     </div>
 
-    <!-- 1. ANA EKRAN -->
+    <!-- 1. ANA EKRAN (DASHBOARD) -->
     <div id="ana-ekran" class="gizli">
-        <h1 style="font-size: 24px;">Günlük Yakıtın</h1>
+        
+        <div class="profil-header">
+            <select id="aktif-profil-secim" onchange="profilDegistir()"></select>
+            <button class="btn-ikincil" onclick="yeniProfilFormu()">+ Yeni Kişi</button>
+        </div>
+
+        <h1 style="font-size: 24px; text-align: left; margin-left: 5px;">Bugünün Yakıtı</h1>
         
         <div class="kart">
             <div class="skor-paneli">
@@ -91,10 +107,13 @@
         </div>
 
         <button onclick="sayfaGoster('tuketim-ekrani')">Günüme Besin Ekle (+)</button>
-        <button class="btn-ikincil" onclick="sayfaGoster('kutuphane-ekrani')">Besin Kütüphanemi Aç</button>
-        <button style="background:none; color:#8D99AE; text-decoration:underline; box-shadow:none;" onclick="sayfaGoster('profil-ekrani')">Profilimi Güncelle</button>
+        
+        <div class="buton-grubu" style="margin-top:10px;">
+            <button class="btn-ikincil" onclick="sayfaGoster('kutuphane-ekrani')">Besin Kütüphanesi</button>
+            <button class="btn-ikincil" onclick="sayfaGoster('gecmis-ekrani')">Tarih Arşivi</button>
+        </div>
 
-        <h2>Bugün Yediklerim</h2>
+        <h2 style="text-align: left; margin-top: 30px; margin-left: 5px; font-size: 20px;">Tüketim Listesi</h2>
         <div id="yenenler-listesi"></div>
     </div>
 
@@ -103,8 +122,7 @@
         <h1>Besin Listesi</h1>
         <button class="btn-ikincil" onclick="sayfaGoster('ana-ekran')" style="margin-bottom:15px;">Ana Ekrana Dön</button>
         <button onclick="besinFormuAc()">Yeni Besin Ekle (+)</button>
-        
-        <h2 style="margin-top: 25px;">Kayıtlı Besinler</h2>
+        <h2 style="margin-top: 25px; text-align: left;">Kayıtlı Besinler</h2>
         <div id="kutuphane-listesi"></div>
     </div>
 
@@ -118,8 +136,8 @@
         <label>Protein (g)</label><input type="number" step="0.1" id="b-pro">
         <label>Yağ (g)</label><input type="number" step="0.1" id="b-yag">
         <label>Karbonhidrat (g)</label><input type="number" step="0.1" id="b-karb">
-        <button onclick="besinKaydet()">Kaydet</button>
-        <button class="btn-tehlike" onclick="sayfaGoster('kutuphane-ekrani')" style="width:100%; margin-top:10px;">İptal</button>
+        <button onclick="besinKaydet()">Sisteme Kaydet</button>
+        <button class="btn-tehlike" onclick="sayfaGoster('kutuphane-ekrani')" style="width:100%; border-radius:50px; margin-top:10px;">İptal</button>
     </div>
 
     <!-- 4. TÜKETİM EKLEME -->
@@ -129,81 +147,124 @@
         <label>Miktar (Gram / Adet)</label>
         <input type="number" id="t-miktar" placeholder="Kaç birim yedin?">
         <button onclick="tuketimKaydet()">Bugüne Ekle</button>
-        <button class="btn-tehlike" onclick="sayfaGoster('ana-ekran')" style="width:100%; margin-top:10px;">İptal</button>
+        <button class="btn-tehlike" onclick="sayfaGoster('ana-ekran')" style="width:100%; border-radius:50px; margin-top:10px;">İptal</button>
+    </div>
+
+    <!-- 5. GEÇMİŞ ARŞİVİ -->
+    <div id="gecmis-ekrani" class="gizli">
+        <h1>Geçmiş Kayıtlar</h1>
+        <button class="btn-ikincil" onclick="sayfaGoster('ana-ekran')" style="margin-bottom:15px;">Ana Ekrana Dön</button>
+        <p id="gecmis-isim-bilgi" style="text-align:center; color:var(--yazi-pasif); font-size:14px;"></p>
+        <div id="gecmis-listesi"></div>
     </div>
 
     <script>
-        // VERİ TOHUMLAMA (Başlangıç Hafızası - Excel Listesi)
+        // TARİH SİSTEMİ
+        const bugununTarihi = new Date().toLocaleDateString('tr-TR');
+
+        // TOHUM VERİLER (Kütüphane Herkes İçin Ortaktır)
         const tohumVeriler = [
             { id: 1, ad: "Mozarella Peynir", ref: 100, pro: 18, yag: 19, karb: 1, cal: 247 },
             { id: 2, ad: "Yumurta (adet)", ref: 1, pro: 6.28, yag: 4.75, karb: 0.2, cal: 72 },
             { id: 3, ad: "Ekmek", ref: 100, pro: 5.22, yag: 1, karb: 50, cal: 249 },
             { id: 4, ad: "Makarna", ref: 100, pro: 7.2, yag: 1.3, karb: 72, cal: 352 },
-            { id: 5, ad: "Mercimek", ref: 100, pro: 17.5, yag: 1.6, karb: 49, cal: 334 },
-            { id: 6, ad: "Nohut", ref: 100, pro: 12, yag: 6.1, karb: 48, cal: 355 },
-            { id: 7, ad: "Fasülye", ref: 100, pro: 13.8, yag: 1.6, karb: 46, cal: 326 },
-            { id: 8, ad: "Tavuk Göğüsü", ref: 100, pro: 23, yag: 0.7, karb: 0, cal: 102 },
-            { id: 9, ad: "Sebze", ref: 100, pro: 0, yag: 0, karb: 0, cal: 0 },
-            { id: 10, ad: "Puding", ref: 100, pro: 2000, yag: 300, karb: 1040, cal: 15200 },
-            { id: 11, ad: "Meyve", ref: 100, pro: 0, yag: 0, karb: 15, cal: 15 },
-            { id: 12, ad: "Lungo Pirinç", ref: 100, pro: 4.02, yag: 0.4, karb: 80, cal: 354 },
-            { id: 13, ad: "Basmati Pirinç", ref: 100, pro: 5.16, yag: 1.1, karb: 78, cal: 358 },
-            { id: 14, ad: "Toz Peynir", ref: 100, pro: 34, yag: 27, karb: 1, cal: 383 },
-            { id: 15, ad: "Zeytinyağ (gram)", ref: 100, pro: 0, yag: 100, karb: 0, cal: 900 },
-            { id: 16, ad: "Ricotta Peynir", ref: 100, pro: 7.7, yag: 9, karb: 3.9, cal: 127 },
-            { id: 17, ad: "Protein Tozu", ref: 100, pro: 73, yag: 5.5, karb: 12, cal: 391 },
-            { id: 18, ad: "Süt Yağsız", ref: 100, pro: 3.4, yag: 0, karb: 5.1, cal: 34 },
-            { id: 19, ad: "Süt Yağlı", ref: 100, pro: 3.3, yag: 3.3, karb: 4.7, cal: 61 },
-            { id: 20, ad: "Süt Yarım Yağlı", ref: 100, pro: 3.3, yag: 1.6, karb: 4.8, cal: 47 },
-            { id: 21, ad: "Yoğurt", ref: 100, pro: 3.6, yag: 3.7, karb: 4.7, cal: 67 },
-            { id: 22, ad: "Fish Fingers", ref: 100, pro: 12, yag: 7.9, karb: 15, cal: 179 },
-            { id: 23, ad: "Skyr Yoğurt", ref: 100, pro: 11, yag: 0.2, karb: 4, cal: 64 },
-            { id: 24, ad: "Un", ref: 100, pro: 6, yag: 0.8, karb: 72, cal: 339 },
-            { id: 25, ad: "Yulaf", ref: 100, pro: 8.4, yag: 7, karb: 59, cal: 375 },
-            { id: 26, ad: "Tavuk Ciğeri", ref: 100, pro: 16, yag: 6, karb: 0, cal: 122 }
+            { id: 5, ad: "Tavuk Göğüsü", ref: 100, pro: 23, yag: 0.7, karb: 0, cal: 102 }
         ];
 
-        // HAFIZA KONTROLÜ
+        // VERİTABANI BAĞLANTILARI
         let besinler = JSON.parse(localStorage.getItem('df_besinler'));
         if(!besinler || besinler.length === 0) {
             besinler = tohumVeriler;
             localStorage.setItem('df_besinler', JSON.stringify(besinler));
         }
-        let bugunYenenler = JSON.parse(localStorage.getItem('df_gunluk')) || [];
-        let profil = JSON.parse(localStorage.getItem('df_profil'));
 
-        // SAYFA YÖNETİMİ
+        let profiller = JSON.parse(localStorage.getItem('df_profiller')) || [];
+        let aktifProfilId = localStorage.getItem('df_aktif_profil_id');
+
+        // SAYFA VE PROFİL YÖNETİMİ
+        function baslangicKontrolu() {
+            if (profiller.length === 0) {
+                sayfaGoster('profil-ekrani');
+            } else {
+                if (!aktifProfilId || !profiller.find(p => p.id == aktifProfilId)) {
+                    aktifProfilId = profiller[0].id;
+                }
+                tarihKontrol(aktifProfilId);
+                sayfaGoster('ana-ekran');
+            }
+        }
+
         function sayfaGoster(id) {
             document.querySelectorAll('body > div').forEach(d => d.classList.add('gizli'));
             document.getElementById(id).classList.remove('gizli');
+            
             if(id === 'ana-ekran') arayuzGuncelle();
             if(id === 'kutuphane-ekrani') kListele();
             if(id === 'tuketim-ekrani') tDoldur();
+            if(id === 'gecmis-ekrani') gecmisListele();
         }
 
-        // 1. PROFİL VE HESAPLAMA SİSTEMİ
+        // PROFİL (ÇEKMECE) MATEMATİĞİ
+        function yeniProfilFormu() {
+            document.querySelectorAll('#profil-ekrani input').forEach(inp => inp.value = '');
+            document.getElementById('iptal-profil-btn').classList.remove('gizli');
+            sayfaGoster('profil-ekrani');
+        }
+
         function profilKaydet() {
+            let ad = document.getElementById('pr-ad').value || "İsimsiz Profil";
             let cins = document.getElementById('pr-cinsiyet').value;
             let yas = parseFloat(document.getElementById('pr-yas').value);
             let boy = parseFloat(document.getElementById('pr-boy').value);
             let kilo = parseFloat(document.getElementById('pr-kilo').value);
             let hare = parseFloat(document.getElementById('pr-hareket').value);
             
-            if(!yas || !boy || !kilo) { alert("Lütfen yaş, boy ve kilonuzu eksiksiz girin."); return; }
+            if(!yas || !boy || !kilo) { alert("Lütfen yaş, boy ve kilonuzu girin."); return; }
 
-            // Mifflin-St Jeor Formülü
             let bmr = cins === 'erkek' ? (10*kilo) + (6.25*boy) - (5*yas) + 5 : (10*kilo) + (6.25*boy) - (5*yas) - 161;
             let kalori = Math.round(bmr * hare);
-            let p_hedef = Math.round(kilo * 2.2); // Spora uygun yüksek protein
-            let y_hedef = Math.round((kalori * 0.25) / 9); // Kalorinin %25'i yağ
+            let p_hedef = Math.round(kilo * 2.2);
+            let y_hedef = Math.round((kalori * 0.25) / 9);
             let k_hedef = Math.round((kalori - (p_hedef*4) - (y_hedef*9)) / 4);
 
-            profil = { kalori, pro: p_hedef, yag: y_hedef, karb: k_hedef };
-            localStorage.setItem('df_profil', JSON.stringify(profil));
+            let yeniProfil = {
+                id: Date.now(), ad: ad, kalori: kalori, pro: p_hedef, yag: y_hedef, karb: k_hedef,
+                gunluk: [], gecmis: [], aktifTarih: bugununTarihi
+            };
+
+            profiller.push(yeniProfil);
+            aktifProfilId = yeniProfil.id;
+            localStorage.setItem('df_profiller', JSON.stringify(profiller));
+            localStorage.setItem('df_aktif_profil_id', aktifProfilId);
+            
+            document.getElementById('iptal-profil-btn').classList.add('gizli');
             sayfaGoster('ana-ekran');
         }
 
-        // 2. KÜTÜPHANE İŞLEMLERİ (CRUD)
+        function profilDegistir() {
+            aktifProfilId = parseInt(document.getElementById('aktif-profil-secim').value);
+            localStorage.setItem('df_aktif_profil_id', aktifProfilId);
+            tarihKontrol(aktifProfilId);
+            arayuzGuncelle();
+        }
+
+        function tarihKontrol(id) {
+            let p = profiller.find(x => x.id == id);
+            if(p && p.aktifTarih !== bugununTarihi) {
+                if(p.gunluk.length > 0) {
+                    p.gecmis.push({ tarih: p.aktifTarih, veriler: p.gunluk });
+                }
+                p.gunluk = [];
+                p.aktifTarih = bugununTarihi;
+                localStorage.setItem('df_profiller', JSON.stringify(profiller));
+            }
+        }
+
+        function aktifProfiliGetir() {
+            return profiller.find(p => p.id == aktifProfilId);
+        }
+
+        // KÜTÜPHANE İŞLEMLERİ (CRUD)
         function kListele() {
             const liste = document.getElementById('kutuphane-listesi');
             liste.innerHTML = '';
@@ -211,61 +272,38 @@
                 liste.innerHTML += `
                     <div class="liste-elemani">
                         <div style="flex:1;">
-                            <strong style="color:var(--vurgu-renk);">${b.ad}</strong>
-                            <span class="liste-detay">${b.ref} birim | ${b.cal} kcal | P:${b.pro} Y:${b.yag} K:${b.karb}</span>
+                            <strong style="color:var(--yazi-ana); font-size:16px;">${b.ad}</strong>
+                            <span class="liste-detay">${b.ref} birim | ${b.cal} kcal | P:${b.pro} Y:${b.yag}</span>
                         </div>
                         <div class="buton-grubu">
                             <button class="btn-duzenle" onclick="besinDuzenle(${b.id})">✎</button>
-                            <button class="btn-tehlike" onclick="besinSil(${b.id})">✖</button>
+                            <button class="btn-tehlike" onclick="besinSil(${b.id})" style="border-radius:12px;">✖</button>
                         </div>
                     </div>`;
             });
         }
 
-        function besinFormuAc() {
-            document.querySelectorAll('#besin-form-ekrani input').forEach(inp => inp.value = '');
-            sayfaGoster('besin-form-ekrani');
-        }
-
+        function besinFormuAc() { document.querySelectorAll('#besin-form-ekrani input').forEach(inp => inp.value = ''); sayfaGoster('besin-form-ekrani'); }
+        
         function besinKaydet() {
             let id = document.getElementById('b-id').value;
-            let yeni = {
-                id: id ? parseInt(id) : Date.now(),
-                ad: document.getElementById('b-ad').value,
-                ref: parseFloat(document.getElementById('b-ref').value),
-                cal: parseFloat(document.getElementById('b-cal').value),
-                pro: parseFloat(document.getElementById('b-pro').value),
-                yag: parseFloat(document.getElementById('b-yag').value),
-                karb: parseFloat(document.getElementById('b-karb').value)
-            };
-            if(id) { besinler[besinler.findIndex(x => x.id == id)] = yeni; } 
-            else { besinler.push(yeni); }
-            
+            let yeni = { id: id ? parseInt(id) : Date.now(), ad: document.getElementById('b-ad').value, ref: parseFloat(document.getElementById('b-ref').value), cal: parseFloat(document.getElementById('b-cal').value), pro: parseFloat(document.getElementById('b-pro').value), yag: parseFloat(document.getElementById('b-yag').value), karb: parseFloat(document.getElementById('b-karb').value) };
+            if(id) { besinler[besinler.findIndex(x => x.id == id)] = yeni; } else { besinler.push(yeni); }
             localStorage.setItem('df_besinler', JSON.stringify(besinler));
             sayfaGoster('kutuphane-ekrani');
         }
 
         function besinDuzenle(id) {
             let b = besinler.find(x => x.id === id);
-            document.getElementById('b-id').value = b.id;
-            document.getElementById('b-ad').value = b.ad;
-            document.getElementById('b-ref').value = b.ref;
-            document.getElementById('b-cal').value = b.cal;
-            document.getElementById('b-pro').value = b.pro;
-            document.getElementById('b-yag').value = b.yag;
-            document.getElementById('b-karb').value = b.karb;
+            document.getElementById('b-id').value = b.id; document.getElementById('b-ad').value = b.ad; document.getElementById('b-ref').value = b.ref; document.getElementById('b-cal').value = b.cal; document.getElementById('b-pro').value = b.pro; document.getElementById('b-yag').value = b.yag; document.getElementById('b-karb').value = b.karb;
             sayfaGoster('besin-form-ekrani');
         }
 
         function besinSil(id) {
-            if(confirm("Bu yiyeceği kütüphaneden tamamen silmek istiyor musun?")) {
-                besinler = besinler.filter(x => x.id !== id);
-                localStorage.setItem('df_besinler', JSON.stringify(besinler));
-                kListele();
-            }
+            if(confirm("Bu yiyeceği silmek istiyor musun?")) { besinler = besinler.filter(x => x.id !== id); localStorage.setItem('df_besinler', JSON.stringify(besinler)); kListele(); }
         }
 
-        // 3. GÜNLÜK TÜKETİM
+        // TÜKETİM VE ARAYÜZ
         function tDoldur() {
             let sec = document.getElementById('t-secim');
             sec.innerHTML = '<option value="">-- Besin Seç --</option>';
@@ -275,33 +313,49 @@
         function tuketimKaydet() {
             let id = document.getElementById('t-secim').value;
             let mik = parseFloat(document.getElementById('t-miktar').value);
-            if(!id || !mik) return alert("Eksik bilgi girdiniz.");
+            if(!id || !mik) return;
             
             let b = besinler.find(x => x.id == id);
-            let carpan = mik / b.ref; // Meşhur Excel formülümüz
+            let carpan = mik / b.ref; 
             
-            bugunYenenler.push({
+            let aktif = aktifProfiliGetir();
+            aktif.gunluk.push({
                 id: Date.now(), ad: b.ad, miktar: mik,
                 cal: Math.round(b.cal * carpan), pro: (b.pro * carpan).toFixed(1),
                 yag: (b.yag * carpan).toFixed(1), karb: (b.karb * carpan).toFixed(1)
             });
             
-            localStorage.setItem('df_gunluk', JSON.stringify(bugunYenenler));
+            localStorage.setItem('df_profiller', JSON.stringify(profiller));
             document.getElementById('t-miktar').value = '';
             sayfaGoster('ana-ekran');
         }
 
         function arayuzGuncelle() {
+            let secimKutusu = document.getElementById('aktif-profil-secim');
+            secimKutusu.innerHTML = '';
+            profiller.forEach(p => {
+                let secili = (p.id == aktifProfilId) ? 'selected' : '';
+                secimKutusu.innerHTML += `<option value="${p.id}" ${secili}>👤 ${p.ad}</option>`;
+            });
+
+            let aktif = aktifProfiliGetir();
             let tCal = 0, tPro = 0, tYag = 0, tKarb = 0;
             let liste = document.getElementById('yenenler-listesi');
             liste.innerHTML = '';
 
-            bugunYenenler.forEach(t => {
+            if(aktif.gunluk.length === 0) {
+                liste.innerHTML = '<p style="text-align:center; color:var(--yazi-pasif);">Henüz bir şey yemedin.</p>';
+            }
+
+            aktif.gunluk.forEach(t => {
                 tCal += parseFloat(t.cal); tPro += parseFloat(t.pro); tYag += parseFloat(t.yag); tKarb += parseFloat(t.karb);
                 liste.innerHTML += `
-                    <div class="liste-elemani" style="border-left-color:var(--basari-renk);">
-                        <div><strong>${t.ad}</strong><span class="liste-detay">${t.miktar} birim</span></div>
-                        <div style="text-align:right;"><strong>${t.cal} kcal</strong><span class="liste-detay">P:${t.pro} Y:${t.yag} K:${t.karb}</span></div>
+                    <div class="liste-elemani">
+                        <div><strong style="font-size:15px;">${t.ad}</strong><span class="liste-detay">${t.miktar} birim</span></div>
+                        <div style="text-align:right;">
+                            <strong style="color:var(--vurgu-renk); font-size:16px;">${t.cal} kcal</strong>
+                            <span class="liste-detay">P:${t.pro} Y:${t.yag}</span>
+                        </div>
                     </div>`;
             });
 
@@ -309,17 +363,36 @@
             document.getElementById('gun-protein').innerText = Math.round(tPro);
             document.getElementById('gun-yag').innerText = Math.round(tYag);
             document.getElementById('gun-karb').innerText = Math.round(tKarb);
-
-            if(profil) {
-                document.getElementById('hedef-kalori').innerText = `Hedef: ${profil.kalori}`;
-                document.getElementById('hedef-protein').innerText = `Hedef: ${profil.pro}g`;
-                document.getElementById('hedef-yag').innerText = `Hedef: ${profil.yag}g`;
-                document.getElementById('hedef-karb').innerText = `Hedef: ${profil.karb}g`;
-            }
+            
+            document.getElementById('hedef-kalori').innerText = `Hedef: ${aktif.kalori}`;
+            document.getElementById('hedef-protein').innerText = `Hedef: ${aktif.pro}g`;
+            document.getElementById('hedef-yag').innerText = `Hedef: ${aktif.yag}g`;
+            document.getElementById('hedef-karb').innerText = `Hedef: ${aktif.karb}g`;
         }
 
-        // BAŞLANGIÇ KONTROLÜ
-        if(!profil) { sayfaGoster('profil-ekrani'); } else { sayfaGoster('ana-ekran'); }
+        function gecmisListele() {
+            let aktif = aktifProfiliGetir();
+            const liste = document.getElementById('gecmis-listesi');
+            document.getElementById('gecmis-isim-bilgi').innerText = `Şu an ${aktif.ad} adlı kişinin arşivindesin.`;
+            liste.innerHTML = '';
+            
+            if(aktif.gecmis.length === 0) { 
+                liste.innerHTML = '<p style="text-align:center; color:var(--yazi-pasif); margin-top:20px;">Arşiv boş.</p>'; return; 
+            }
+            
+            let tersArsiv = [...aktif.gecmis].reverse();
+            tersArsiv.forEach(gun => {
+                liste.innerHTML += `<span class="gecmis-tarih">${gun.tarih}</span>`;
+                let topCal = 0;
+                gun.veriler.forEach(t => {
+                    topCal += parseFloat(t.cal);
+                    liste.innerHTML += `<div class="liste-elemani" style="border-left-color:#3A3A3C; opacity:0.7; padding:12px;"><div><strong>${t.ad}</strong><span class="liste-detay">${t.miktar} birim</span></div><div style="text-align:right;"><strong style="color:var(--yazi-ana);">${t.cal} kcal</strong></div></div>`;
+                });
+                liste.innerHTML += `<div style="text-align:right; font-size:14px; font-weight:800; margin-bottom:20px; color:var(--yazi-ana);">Toplam: ${Math.round(topCal)} kcal</div>`;
+            });
+        }
+
+        baslangicKontrolu();
     </script>
 </body>
 </html>
