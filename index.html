@@ -244,7 +244,7 @@
             opacity: .8;
         }
 
-        /* İlerleme çubuğu (kalori kutusuna eşlik eder) */
+        /* İlerleme çubuğu (kalori / protein kutularına eşlik eder) */
         .ilerleme-yolu {
             width: 100%;
             height: 4px;
@@ -375,6 +375,13 @@
 
         option { background: #171c19; color: #f5f7f3; }
 
+        .form-not {
+            font-size: 12.5px;
+            color: var(--yazi-pasif);
+            margin: -8px 0 16px 2px;
+            line-height: 1.5;
+        }
+
         /* Profil alanı */
         .profil-header {
             display: flex;
@@ -446,6 +453,17 @@
             margin-bottom: 20px;
         }
 
+        .profil-bolum-basligi {
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--vurgu-renk);
+            margin: 22px 0 12px 2px;
+        }
+
+        .profil-bolum-basligi:first-of-type { margin-top: 4px; }
+
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 999px; }
@@ -488,13 +506,55 @@
         <label>Kilo (kg)</label>
         <input type="number" id="pr-kilo" placeholder="Örn: 70">
 
-        <label>Haftalık Hareket Seviyesi</label>
-        <select id="pr-hareket">
-            <option value="1.2">Masa Başı / Hareketsiz</option>
-            <option value="1.375">Haftada 1-3 Gün Hafif Spor</option>
-            <option value="1.55">Haftada 3-5 Gün Orta Tempo</option>
-            <option value="1.725">Haftada 6-7 Gün Ağır Antrenman</option>
+        <div class="profil-bolum-basligi">Günlük Yaşam Aktivitesi</div>
+        <label>Günlük Ortalama Adım</label>
+        <select id="pr-adim">
+            <option value="1.15">0 – 3.999 adım</option>
+            <option value="1.2" selected>4.000 – 6.999 adım</option>
+            <option value="1.275">7.000 – 9.999 adım</option>
+            <option value="1.35">10.000 – 12.499 adım</option>
+            <option value="1.425">12.500+ adım</option>
         </select>
+
+        <div class="profil-bolum-basligi">Egzersiz</div>
+        <label>Haftada Kaç Gün Egzersiz Yapıyorsun?</label>
+        <select id="pr-egzersiz-gun">
+            <option value="0">0 gün (yapmıyorum)</option>
+            <option value="1">1 gün</option>
+            <option value="2">2 gün</option>
+            <option value="3" selected>3 gün</option>
+            <option value="4">4 gün</option>
+            <option value="5">5 gün</option>
+            <option value="6">6+ gün</option>
+        </select>
+
+        <label>Ağırlıklı Egzersiz Türü</label>
+        <select id="pr-egzersiz-tip">
+            <option value="agirlik" selected>Ağırlık Antrenmanı</option>
+            <option value="kosu">Koşu</option>
+            <option value="futbol">Futbol</option>
+            <option value="bisiklet">Bisiklet</option>
+            <option value="kardiyo">Kardiyo</option>
+            <option value="karisik">Karışık</option>
+        </select>
+
+        <label>Ortalama Egzersiz Süresi</label>
+        <select id="pr-egzersiz-sure">
+            <option value="30">30 dakika</option>
+            <option value="45" selected>45 dakika</option>
+            <option value="60">60 dakika</option>
+            <option value="75">75 dakika</option>
+            <option value="90">90+ dakika</option>
+        </select>
+
+        <div class="profil-bolum-basligi">Hedef</div>
+        <label>Ne Yapmak İstiyorsun?</label>
+        <select id="pr-hedef">
+            <option value="kayip">🔻 Yağ Kaybı</option>
+            <option value="koruma" selected>⚖️ Kilo Koruma</option>
+            <option value="kazanim">🔺 Kas / Kilo Kazanımı</option>
+        </select>
+        <p class="form-not">Bu bir başlangıç tahminidir. Gerçek kilo değişimine göre birkaç hafta içinde ayarlaman gerekebilir.</p>
 
         <button onclick="profilKaydet()">Profili Yarat ve Başla</button>
         <button class="btn-ikincil gizli" id="iptal-profil-btn" onclick="sayfaGoster('ana-ekran')">İptal</button>
@@ -518,7 +578,10 @@
                     <strong id="gun-kalori">0</strong><span>Kalori</span><span class="hedef-yazi" id="hedef-kalori">Hedef: 0</span>
                     <div class="ilerleme-yolu"><div class="ilerleme-cubuk" id="ilerleme-kalori" style="width:0%;"></div></div>
                 </div>
-                <div class="skor-kutu"><strong id="gun-protein">0</strong><span>Protein</span><span class="hedef-yazi" id="hedef-protein">Hedef: 0g</span></div>
+                <div class="skor-kutu">
+                    <strong id="gun-protein">0</strong><span>Protein</span><span class="hedef-yazi" id="hedef-protein">Hedef: 0g</span>
+                    <div class="ilerleme-yolu"><div class="ilerleme-cubuk" id="ilerleme-protein" style="width:0%;"></div></div>
+                </div>
                 <div class="skor-kutu"><strong id="gun-yag">0</strong><span>Yağ</span><span class="hedef-yazi" id="hedef-yag">Hedef: 0g</span></div>
                 <div class="skor-kutu"><strong id="gun-karb">0</strong><span>Karb</span><span class="hedef-yazi" id="hedef-karb">Hedef: 0g</span></div>
             </div>
@@ -665,25 +728,63 @@
             sayfaGoster('profil-ekrani');
         }
 
+        // Egzersiz türüne göre yaklaşık MET değeri (enerji harcama yoğunluğu)
+        function metDegeri(tip) {
+            const metTablosu = { agirlik: 5, kosu: 9.8, futbol: 7, bisiklet: 7.5, kardiyo: 7, karisik: 6.5 };
+            return metTablosu[tip] || 5;
+        }
+
         function profilKaydet() {
             let ad = document.getElementById('pr-ad').value || "İsimsiz Profil";
             let cins = document.getElementById('pr-cinsiyet').value;
             let yas = parseFloat(document.getElementById('pr-yas').value);
             let boy = parseFloat(document.getElementById('pr-boy').value);
             let kilo = parseFloat(document.getElementById('pr-kilo').value);
-            let hare = parseFloat(document.getElementById('pr-hareket').value);
+
+            let adimFaktor = parseFloat(document.getElementById('pr-adim').value);
+            let egzGun = parseFloat(document.getElementById('pr-egzersiz-gun').value);
+            let egzTip = document.getElementById('pr-egzersiz-tip').value;
+            let egzSure = parseFloat(document.getElementById('pr-egzersiz-sure').value);
+            let hedef = document.getElementById('pr-hedef').value;
 
             if(!yas || !boy || !kilo) { alert("Lütfen yaş, boy ve kilonuzu girin."); return; }
 
+            // 1) Dinlenme metabolizması (Mifflin-St Jeor)
             let bmr = cins === 'erkek' ? (10*kilo) + (6.25*boy) - (5*yas) + 5 : (10*kilo) + (6.25*boy) - (5*yas) - 161;
-            let kalori = Math.round(bmr * hare);
-            let p_hedef = Math.round(kilo * 2.2);
-            let y_hedef = Math.round((kalori * 0.25) / 9);
+
+            // 2) Günlük yaşam aktivitesi (adım sayısına dayalı NEAT çarpanı)
+            let gunlukYasamKalori = bmr * adimFaktor;
+
+            // 3) Egzersizden gelen haftalık ortalama günlük kalori (MET tabanlı)
+            let met = metDegeri(egzTip);
+            let kcalDakika = (met * 3.5 * kilo) / 200;
+            let haftalikEgzersizKcal = kcalDakika * egzSure * egzGun;
+            let gunlukEgzersizKcal = haftalikEgzersizKcal / 7;
+
+            // 4) Tahmini toplam günlük enerji ihtiyacı (TDEE)
+            let tdee = gunlukYasamKalori + gunlukEgzersizKcal;
+
+            // 5) Hedefe göre kalori ayarı
+            let hedefCarpan = hedef === 'kayip' ? 0.85 : (hedef === 'kazanim' ? 1.075 : 1);
+            let kalori = Math.round(tdee * hedefCarpan);
+
+            // 6) Protein: hedefe göre kilo başına g (sabit 2.2 yerine)
+            let proteinGkg = hedef === 'kayip' ? 2.0 : 1.8;
+            let p_hedef = Math.round(kilo * proteinGkg);
+
+            // 7) Yağ: kalorinin sabit %'si yerine kilo başına g
+            let yagGkg = 0.8;
+            let y_hedef = Math.round(kilo * yagGkg);
+
+            // 8) Karbonhidrat: kalan kalori
             let k_hedef = Math.round((kalori - (p_hedef*4) - (y_hedef*9)) / 4);
+            if (k_hedef < 0) k_hedef = 0;
 
             let yeniProfil = {
                 id: Date.now(), ad: ad, kalori: kalori, pro: p_hedef, yag: y_hedef, karb: k_hedef,
-                gunluk: [], gecmis: [], aktifTarih: bugununTarihi
+                gunluk: [], gecmis: [], aktifTarih: bugununTarihi,
+                // sonraki düzenlemeler / olası kalibrasyon için saklanan girdiler
+                girdi: { cins, yas, boy, kilo, adimFaktor, egzGun, egzTip, egzSure, hedef }
             };
 
             profiller.push(yeniProfil);
@@ -823,8 +924,11 @@
             document.getElementById('hedef-yag').innerText = `Hedef: ${aktif.yag}g`;
             document.getElementById('hedef-karb').innerText = `Hedef: ${aktif.karb}g`;
 
-            let yuzde = aktif.kalori > 0 ? Math.min(100, Math.round((tCal / aktif.kalori) * 100)) : 0;
-            document.getElementById('ilerleme-kalori').style.width = yuzde + '%';
+            let kaloriYuzde = aktif.kalori > 0 ? Math.min(100, Math.round((tCal / aktif.kalori) * 100)) : 0;
+            document.getElementById('ilerleme-kalori').style.width = kaloriYuzde + '%';
+
+            let proteinYuzde = aktif.pro > 0 ? Math.min(100, Math.round((tPro / aktif.pro) * 100)) : 0;
+            document.getElementById('ilerleme-protein').style.width = proteinYuzde + '%';
         }
 
         function gecmisListele() {
