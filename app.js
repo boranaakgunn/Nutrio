@@ -1,6 +1,208 @@
+
+        // SEED KÜTÜPHANESİ — besinler.js'den gelir (merkezi/default besin verisi).
+        // Bu dosya SADECE veri içerir; sürümü NUTRIO_SEED_VERSION ile takip edilir.
+        const tohumVeriler = NUTRIO_BESINLER;
+        const SEED_VERSION = NUTRIO_SEED_VERSION;
+
         // TARİH SİSTEMİ
         const bugununTarihi = new Date().toLocaleDateString('tr-TR');
         const gunAdlari = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
+
+        // MERKEZİ KATEGORİ TANIMI — kütüphane, tüketim ve form ekranı bu tek tanımı kullanır.
+        // 'tum' ve 'favori' gerçek besin kategorisi DEĞİLDİR: sadece filtre sekmesidir.
+        const BESIN_KATEGORILERI = [
+            { key: 'et', ad: 'Et & Tavuk' },
+            { key: 'balik', ad: 'Balık & Deniz Ürünleri' },
+            { key: 'sut', ad: 'Süt & Yumurta' },
+            { key: 'tahil', ad: 'Tahıl & Bakliyat' },
+            { key: 'sebze_meyve', ad: 'Sebze & Meyve' },
+            { key: 'yag', ad: 'Kuruyemiş & Yağ' },
+            { key: 'yemek', ad: 'Yemek & Çorba' },
+            { key: 'tatli', ad: 'Tatlı & Atıştırmalık' },
+            { key: 'icecek', ad: 'İçecekler' },
+            { key: 'diger', ad: 'Diğer' }
+        ];
+        const GECERLI_KATEGORI_ANAHTARLARI = new Set(BESIN_KATEGORILERI.map(k => k.key));
+        const KATEGORI_ADI = Object.fromEntries(BESIN_KATEGORILERI.map(k => [k.key, k.ad]));
+
+        // ÖĞÜN ETİKETLERİ — tüketim kayıtlarında öğün seçimi (eski kayıtlar 'belirsiz')
+        const OJUN_ETIKETLERI = [
+            { key: 'kahvalti', ad: 'Kahvaltı' },
+            { key: 'ogle', ad: 'Öğle' },
+            { key: 'aksam', ad: 'Akşam' },
+            { key: 'ara_ogun', ad: 'Ara Öğün' }
+        ];
+        const OJUN_ADI = Object.fromEntries(OJUN_ETIKETLERI.map(o => [o.key, o.ad]));
+        const OJUN_SIRASI = ['kahvalti', 'ogle', 'aksam', 'ara_ogun', 'belirsiz'];
+
+        // TÜRKÇE ALFABETİK SIRALAMA — tüm besin listeleri bu tek yardımcıyı kullanır.
+        // Öncelik: 1) favoriler önce (kendi içinde alfabetik), 2) sonra alfabetik.
+        const trCollator = new Intl.Collator('tr-TR', { sensitivity: 'base', numeric: true });
+
+        function besinSiralamaKarsilastir(a, b) {
+            const aFav = favoriler.includes(a.id) ? 0 : 1;
+            const bFav = favoriler.includes(b.id) ? 0 : 1;
+            if (aFav !== bFav) return aFav - bFav;
+            return trCollator.compare(gorunenAd(a), gorunenAd(b));
+        }
+
+        function besinleriSirala(liste) {
+            return [...liste].sort(besinSiralamaKarsilastir);
+        }
+
+        // MODAL SİSTEMİ — Nutrio özel modal (native prompt/confirm yerine).
+        // modalOnay(baslik, aciklama) -> Promise<boolean>
+        // modalGirdi(baslik, aciklama, varsayilanDeger) -> Promise<string|null>
+        // modalUyari(baslik, aciklama) -> Promise<void> (sadece Tamam)
+        function modalKapat() {
+            const overlay = document.getElementById('nutrio-modal-overlay');
+            if (overlay) overlay.remove();
+        }
+
+        function modalTemelOlustur(baslik, aciklama, govdeHtml) {
+            modalKapat();
+            const overlay = document.createElement('div');
+            overlay.id = 'nutrio-modal-overlay';
+            overlay.innerHTML = `
+                <div class="nutrio-modal">
+                    <h3>${esc(baslik)}</h3>
+                    ${aciklama ? '<p>' + esc(aciklama) + '</p>' : ''}
+                    ${govdeHtml}
+                </div>`;
+            document.body.appendChild(overlay);
+            // overlay'e tıklayınca kapatma — tehlikeli işlemlerde yanlışlıkla kapanmasın
+            return overlay;
+        }
+
+        function modalOnay(baslik, aciklama, tehlikeliMi) {
+            return new Promise(resolve => {
+                const btnClass = tehlikeliMi ? 'btn-tehlike' : '';
+                const govde = `
+                    <div class="nutrio-modal-btnler">
+                        <button class="btn-ikincil" data-sonuc="iptal">İptal</button>
+                        <button class="${btnClass}" data-sonuc="onay">${tehlikeliMi ? 'Evet, Sil' : 'Onayla'}</button>
+                    </div>`;
+                const overlay = modalTemelOlustur(baslik, aciklama, govde);
+                overlay.querySelectorAll('[data-sonuc]').forEach(btn => {
+                    btn.onclick = () => {
+                        modalKapat();
+                        resolve(btn.dataset.sonuc === 'onay');
+                    };
+                });
+            });
+        }
+
+        function modalGirdi(baslik, aciklama, varsayilanDeger, placeholder) {
+            return new Promise(resolve => {
+                const govde = `
+                    <input type="text" id="nutrio-modal-input" value="${esc(varsayilanDeger || '')}" placeholder="${esc(placeholder || '')}">
+                    <div class="nutrio-modal-btnler">
+                        <button class="btn-ikincil" data-sonuc="iptal">İptal</button>
+                        <button data-sonuc="kaydet">Kaydet</button>
+                    </div>`;
+                const overlay = modalTemelOlustur(baslik, aciklama, govde);
+                const input = overlay.querySelector('#nutrio-modal-input');
+                const tamamla = sonuc => {
+                    modalKapat();
+                    resolve(sonuc);
+                };
+                overlay.querySelectorAll('[data-sonuc]').forEach(btn => {
+                    btn.onclick = () => tamamla(btn.dataset.sonuc === 'kaydet' ? input.value : null);
+                });
+                input.focus();
+                input.select();
+                input.onkeydown = e => {
+                    if (e.key === 'Enter') tamamla(input.value);
+                    if (e.key === 'Escape') tamamla(null);
+                };
+            });
+        }
+
+        function modalUyari(baslik, aciklama) {
+            return new Promise(resolve => {
+                const govde = `
+                    <div class="nutrio-modal-btnler">
+                        <button data-sonuc="ok">Tamam</button>
+                    </div>`;
+                const overlay = modalTemelOlustur(baslik, aciklama, govde);
+                overlay.querySelector('[data-sonuc]').onclick = () => {
+                    modalKapat();
+                    resolve();
+                };
+            });
+        }
+
+        // TEMA SİSTEMİ — 5 tema, CSS değişkenleriyle. Varsayılan: Lime + Dark.
+        // Seçim localStorage'da df_tema olarak saklanır, sayfa açılışında geri yüklenir.
+        const TEMA_LISTESI = ['lime', 'ocean', 'violet', 'energy', 'minimal'];
+        const TEMA_ADLARI = { lime: 'Lime', ocean: 'Ocean', violet: 'Violet', energy: 'Energy', minimal: 'Minimal' };
+        const TEMA_ORNEK_RENKLERI = { lime: '#b8ff4d', ocean: '#4dc3ff', violet: '#b84dff', energy: '#ff8a4d', minimal: '#d4d4d4' };
+        // Her temanın arka plan rengi — html background + theme-color meta için
+        const TEMA_ARKA_PLANLARI = { lime: '#0b0e0c', ocean: '#070d18', violet: '#0d0916', energy: '#120d0a', minimal: '#101012' };
+        // Tema önizleme kartı renkleri (Ayarlar ekranı)
+        const TEMA_ONIZLEME = {
+            lime:   { arka: '#0b0e0c', kart: '#1a201c', vurgu: '#b8ff4d', yazi: '#f5f7f3' },
+            ocean:  { arka: '#070d18', kart: '#121c30', vurgu: '#4dc3ff', yazi: '#eef4fb' },
+            violet: { arka: '#0d0916', kart: '#1d152e', vurgu: '#b84dff', yazi: '#f6f2fb' },
+            energy: { arka: '#120d0a', kart: '#241a15', vurgu: '#ff8a4d', yazi: '#faf4ef' },
+            minimal:{ arka: '#101012', kart: '#1d1d21', vurgu: '#e2e2e6', yazi: '#f2f2f4' }
+        };
+
+        function temaUygula(tema) {
+            if (!TEMA_LISTESI.includes(tema)) tema = 'lime';
+            document.body.dataset.tema = tema;
+            localStorage.setItem('df_tema', tema);
+            const meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.content = TEMA_ARKA_PLANLARI[tema];
+            document.documentElement.style.background = TEMA_ARKA_PLANLARI[tema];
+            document.querySelectorAll('.renk-nokta').forEach(n => {
+                n.classList.toggle('secili', n.dataset.tema === tema);
+            });
+            document.querySelectorAll('.tema-karti').forEach(k => {
+                k.classList.toggle('secili', k.dataset.tema === tema);
+            });
+        }
+
+        function temaBaslangictaYukle() {
+            temaUygula(localStorage.getItem('df_tema') || 'lime');
+        }
+
+        function temaSeciciOlustur(alanId) {
+            const alan = document.getElementById(alanId);
+            if (!alan) return;
+            const aktifTema = localStorage.getItem('df_tema') || 'lime';
+            alan.innerHTML = TEMA_LISTESI.map(t => {
+                const o = TEMA_ONIZLEME[t];
+                return '<button type="button" class="tema-karti' + (t === aktifTema ? ' secili' : '') + '" data-tema="' + t + '" onclick="temaUygula(\'' + t + '\')">' +
+                    '<span class="tema-onizleme" style="background:' + o.arka + ';">' +
+                    '<span class="tema-onizleme-kart" style="background:' + o.kart + '; border:1px solid rgba(255,255,255,.08);"></span>' +
+                    '<span class="tema-onizleme-cubuk" style="background:' + o.vurgu + '; box-shadow:0 0 8px ' + o.vurgu + ';"></span>' +
+                    '</span>' +
+                    '<span class="tema-karti-ad" style="color:' + o.yazi + '; background:' + o.kart + ';">' + (t === aktifTema ? '✓ ' : '') + esc(TEMA_ADLARI[t]) + '</span>' +
+                    '</button>';
+            }).join('');
+        }
+
+        // TARİH YARDIMCILARI — gün detay gezinimi için ortak işlemler
+        function tarihAyarla(tarihStr, gunFarki) {
+            const d = tarihToDate(tarihStr);
+            d.setDate(d.getDate() + gunFarki);
+            return d.toLocaleDateString('tr-TR');
+        }
+
+        function formatTarihUzun(tarihStr) {
+            const d = tarihToDate(tarihStr);
+            return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+
+        function formatTarihKisa(tarihStr) {
+            const d = tarihToDate(tarihStr);
+            return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
+        }
+
+        function tarihFarkiGun(tarihA, tarihB) {
+            return Math.round((tarihToDate(tarihA) - tarihToDate(tarihB)) / 86400000);
+        }
 
         function tarihToDate(str) {
             const [g, a, y] = str.split('.').map(Number);
@@ -32,55 +234,13 @@
             return obj.marka ? (obj.marka + ' ' + obj.ad) : obj.ad;
         }
 
-        // TOHUM VERİLER (Kütüphane Herkes İçin Ortaktır)
-        const tohumVeriler = [
-            { "id": 1, "ad": "Tavuk", "kategori": "et", "birim": "g", "ref": 100, "pro": 16, "yag": 6, "karb": 0, "cal": 122 },
-            { "id": 2, "ad": "Tavuk Göğüsü", "kategori": "et", "birim": "g", "ref": 100, "pro": 23, "yag": 0.7, "karb": 0, "cal": 102 },
-            { "id": 3, "ad": "Tavuk Ciğeri", "kategori": "et", "birim": "g", "ref": 100, "pro": 16, "yag": 6, "karb": 0, "cal": 122 },
-            { "id": 4, "ad": "Kırmızı Et", "kategori": "et", "birim": "g", "ref": 100, "pro": 26, "yag": 15, "karb": 0, "cal": 250 },
-            { "id": 5, "ad": "Protein Tozu", "kategori": "diger", "birim": "g", "ref": 100, "pro": 73, "yag": 5.5, "karb": 12, "cal": 391 },
-            { "id": 6, "ad": "Yumurta", "kategori": "sut", "birim": "adet", "ref": 1, "pro": 6.28, "yag": 4.75, "karb": 0.2, "cal": 72 },
-            { "id": 7, "ad": "Toz Peynir", "kategori": "sut", "birim": "g", "ref": 100, "pro": 34, "yag": 27, "karb": 1, "cal": 383 },
-            { "id": 8, "ad": "Mozarella Peynir", "kategori": "sut", "birim": "g", "ref": 100, "pro": 18, "yag": 19, "karb": 1, "cal": 247 },
-            { "id": 9, "ad": "Skyr Yoğurt", "kategori": "sut", "birim": "g", "ref": 100, "pro": 11, "yag": 0.2, "karb": 4, "cal": 64 },
-            { "id": 10, "ad": "Lungo Pirinç", "kategori": "karb", "birim": "g", "ref": 100, "pro": 4.02, "yag": 0.4, "karb": 80, "cal": 354 },
-            { "id": 11, "ad": "Basmati Pirinç", "kategori": "karb", "birim": "g", "ref": 100, "pro": 5.16, "yag": 1.1, "karb": 78, "cal": 358 },
-            { "id": 12, "ad": "Makarna", "kategori": "karb", "birim": "g", "ref": 100, "pro": 7.2, "yag": 1.3, "karb": 72, "cal": 352 },
-            { "id": 13, "ad": "Ekmek", "kategori": "karb", "birim": "dilim", "ref": 1, "pro": 2.6, "yag": 0.5, "karb": 25, "cal": 125 },
-            { "id": 14, "ad": "Un", "kategori": "karb", "birim": "g", "ref": 100, "pro": 6, "yag": 0.8, "karb": 72, "cal": 339 },
-            { "id": 15, "ad": "Yulaf", "kategori": "karb", "birim": "g", "ref": 100, "pro": 8.4, "yag": 7, "karb": 59, "cal": 375 },
-            { "id": 16, "ad": "Nohut", "kategori": "karb", "birim": "g", "ref": 100, "pro": 12, "yag": 6.1, "karb": 48, "cal": 355 },
-            { "id": 17, "ad": "Fasülye", "kategori": "karb", "birim": "g", "ref": 100, "pro": 13.8, "yag": 1.6, "karb": 46, "cal": 326 },
-            { "id": 18, "ad": "Yeşil Mercimek", "kategori": "karb", "birim": "g", "ref": 100, "pro": 24, "yag": 1, "karb": 60, "cal": 352 },
-            { "id": 19, "ad": "Zeytinyağı", "kategori": "yag", "birim": "ml", "ref": 100, "pro": 0, "yag": 100, "karb": 0, "cal": 900 },
-            { "id": 20, "ad": "Tereyağı", "kategori": "yag", "birim": "g", "ref": 100, "pro": 0.8, "yag": 81, "karb": 0.1, "cal": 717 },
-            { "id": 21, "ad": "Ricotta Peynir", "kategori": "sut", "birim": "g", "ref": 100, "pro": 7.7, "yag": 9, "karb": 3.9, "cal": 127 },
-            { "id": 22, "ad": "Süt Yağsız", "kategori": "sut", "birim": "ml", "ref": 100, "pro": 3.4, "yag": 0, "karb": 5.1, "cal": 34 },
-            { "id": 23, "ad": "Süt Yarım Yağlı", "kategori": "sut", "birim": "ml", "ref": 100, "pro": 3.3, "yag": 1.6, "karb": 4.8, "cal": 47 },
-            { "id": 24, "ad": "Süt Yağlı", "kategori": "sut", "birim": "ml", "ref": 100, "pro": 3.3, "yag": 3.3, "karb": 4.7, "cal": 61 },
-            { "id": 25, "ad": "Yoğurt", "kategori": "sut", "birim": "g", "ref": 100, "pro": 3.6, "yag": 3.7, "karb": 4.7, "cal": 67 },
-            { "id": 26, "ad": "Fish Fingers", "kategori": "et", "birim": "g", "ref": 100, "pro": 12, "yag": 7.9, "karb": 15, "cal": 179 },
-            { "id": 27, "ad": "Puding", "kategori": "diger", "birim": "porsiyon", "ref": 1, "pro": 3, "yag": 5, "karb": 20, "cal": 137 },
-            { "id": 28, "ad": "Sebze", "kategori": "sebze", "birim": "g", "ref": 100, "pro": 1.5, "yag": 0.2, "karb": 5, "cal": 28 },
-            { "id": 29, "ad": "Meyve", "kategori": "meyve", "birim": "g", "ref": 100, "pro": 0, "yag": 0, "karb": 15, "cal": 15 },
-            { "id": 30, "ad": "Elma", "kategori": "meyve", "birim": "g", "ref": 100, "pro": 0.3, "yag": 0.2, "karb": 13.8, "cal": 52 },
-            { "id": 31, "ad": "Armut", "kategori": "meyve", "birim": "g", "ref": 100, "pro": 0.4, "yag": 0.1, "karb": 15.2, "cal": 57 },
-            { "id": 32, "ad": "Muz", "kategori": "meyve", "birim": "g", "ref": 100, "pro": 1.1, "yag": 0.3, "karb": 22.8, "cal": 89 },
-            { "id": 33, "ad": "Çilek", "kategori": "meyve", "birim": "g", "ref": 100, "pro": 0.7, "yag": 0.3, "karb": 7.7, "cal": 32 },
-            { "id": 34, "ad": "Karpuz", "kategori": "meyve", "birim": "g", "ref": 100, "pro": 0.6, "yag": 0.2, "karb": 7.6, "cal": 30 },
-            { "id": 35, "ad": "Kavun", "kategori": "meyve", "birim": "g", "ref": 100, "pro": 0.8, "yag": 0.2, "karb": 8.2, "cal": 34 },
-            { "id": 36, "ad": "Kiraz", "kategori": "meyve", "birim": "g", "ref": 100, "pro": 1, "yag": 0.3, "karb": 12.2, "cal": 50 },
-            { "id": 37, "ad": "Kivi", "kategori": "meyve", "birim": "g", "ref": 100, "pro": 1.1, "yag": 0.5, "karb": 14.7, "cal": 61 },
-            { "id": 38, "ad": "Mandalina", "kategori": "meyve", "birim": "g", "ref": 100, "pro": 0.8, "yag": 0.3, "karb": 13.3, "cal": 53 },
-            { "id": 39, "ad": "Portakal", "kategori": "meyve", "birim": "g", "ref": 100, "pro": 0.9, "yag": 0.1, "karb": 11.8, "cal": 47 },
-            { "id": 40, "ad": "Şeftali", "kategori": "meyve", "birim": "g", "ref": 100, "pro": 0.9, "yag": 0.3, "karb": 9.5, "cal": 39 },
-            { "id": 41, "ad": "Üzüm", "kategori": "meyve", "birim": "g", "ref": 100, "pro": 0.7, "yag": 0.2, "karb": 18.1, "cal": 69 }
-        ];
 
         // VERİTABANI BAĞLANTILARI
-        let besinler = JSON.parse(localStorage.getItem('df_besinler'));
-        if (!besinler || besinler.length === 0) {
-            besinler = tohumVeriler;
+        let besinler;
+        try { besinler = JSON.parse(localStorage.getItem('df_besinler')); } catch (e) { besinler = null; }
+        if (!Array.isArray(besinler) || besinler.length === 0) {
+            // İlk açılış: tüm seed kütüphanesi kopyalanır (tohumVeriler referansı paylaşılmaz)
+            besinler = tohumVeriler.map(t => Object.assign({}, t, { marka: '' }));
             localStorage.setItem('df_besinler', JSON.stringify(besinler));
         }
 
@@ -99,33 +259,119 @@
         let tkSeciliGunler = [];
         let olcumAktifTur = 'bel';
 
-        // GÖÇ / MİGRASYON — eski kayıtları yeni alanlarla tamamla
+        // GÖÇ / MİGRASYON v2 — eski kategorileri yeni sisteme dönüştür, duplicate temizle.
+        // Idempotent: df_migration_version == 2 ise tekrar çalışmaz. Kullanıcı verisi (marka, besin değerleri,
+        // tüketim geçmişi, favoriler, profiller, kilo/su/egzersiz/takviye kayıtları, şablonlar) korunur.
+        const MIGRATION_VERSION = 2;
+        // SEED SÜRÜMÜ — besinler.js içindeki NUTRIO_SEED_VERSION'dan gelir (dosyanın başına bak).
+        // Seed kütüphanesi değiştiğinde SADECE besinler.js'deki NUTRIO_SEED_VERSION artar.
+        // Migration sürümünden BAĞIMSIZDIR: df_migration_version == 2 olan eski kullanıcılarda da
+        // eksik seed besinler bir kez daha güvenle eklenir (kullanıcı kayıtları korunur, duplicate oluşmaz).
+        const ESKI_KATEGORI_MAP = { karb: 'tahil', sebze: 'sebze_meyve', meyve: 'sebze_meyve' };
+        // İsim üzerinden güvenli kategori eşleştirme — sadece açıkça balık olan kayıtlar için
+        const BALIK_IPUCLARI = ['balık', 'balik', 'somon', 'ton balığı', 'levrek', 'çipura', 'uskumru', 'hamsi', 'sardalya', 'alabalık', 'mezgit', 'palamut', 'lüfer', 'karides', 'kalamar', 'midye', 'ahtapot', 'stavrit', 'i̇stavrit', 'fish'];
+        // Kategori düzeltmesi gereken özel isimler (eski seed hataları)
+        const OZEL_KATEGORI_DUZELTMELERI = { 'fish fingers': 'yemek', 'puding': 'tatli' };
+
         function besinMigrasyon() {
+            const rapor = { yenidenKategorize: 0, duplicateTemizlenen: 0, geriEklenenSeed: 0, balikDuzeltme: 0, korunanKullaniciKaydi: 0, degismedenBirakilan: 0 };
             let degisti = false;
+
+            // 1) Özel isim düzeltmeleri ÖNCE (eski seed hataları), sonra eski->yeni kategori dönüşümü,
+            //    en son eksik/geçersiz kategori için güvenli balık eşleştirme veya diger
             besinler.forEach(b => {
-                if (!b.kategori) {
-                    let tohum = tohumVeriler.find(t => t.id === b.id);
-                    b.kategori = tohum ? tohum.kategori : 'diger';
-                    degisti = true;
+                const adKucuk = (b.ad || '').toLocaleLowerCase('tr-TR');
+                let degistiBu = false;
+                if (OZEL_KATEGORI_DUZELTMELERI[adKucuk]) {
+                    if (b.kategori !== OZEL_KATEGORI_DUZELTMELERI[adKucuk]) {
+                        b.kategori = OZEL_KATEGORI_DUZELTMELERI[adKucuk];
+                        rapor.yenidenKategorize++;
+                        degistiBu = true;
+                    }
+                } else if (b.kategori && ESKI_KATEGORI_MAP[b.kategori]) {
+                    b.kategori = ESKI_KATEGORI_MAP[b.kategori];
+                    rapor.yenidenKategorize++;
+                    degistiBu = true;
+                }
+                if (!b.kategori || !GECERLI_KATEGORI_ANAHTARLARI.has(b.kategori)) {
+                    if (BALIK_IPUCLARI.some(ip => adKucuk.includes(ip))) {
+                        b.kategori = 'balik';
+                        rapor.balikDuzeltme++;
+                    } else {
+                        b.kategori = 'diger';
+                    }
+                    degistiBu = true;
                 }
                 if (!b.birim) {
-                    let tohum = tohumVeriler.find(t => t.id === b.id);
+                    const tohum = tohumVeriler.find(t => t.id === b.id);
                     b.birim = tohum ? tohum.birim : (b.ref == 1 ? 'adet' : 'g');
-                    degisti = true;
+                    degistiBu = true;
                 }
-                if (b.marka === undefined) {
-                    b.marka = '';
-                    degisti = true;
-                }
+                if (b.marka === undefined) { b.marka = ''; degistiBu = true; }
+                if (degistiBu) degisti = true; else rapor.degismedenBirakilan++;
             });
-            // Kütüphaneden eksilmiş (kaybolmuş) varsayılan besinleri, mevcutları bozmadan geri ekle
-            tohumVeriler.forEach(t => {
-                if (!besinler.find(b => b.id === t.id)) {
-                    besinler.push({ id: t.id, ad: t.ad, marka: '', kategori: t.kategori, birim: t.birim, ref: t.ref, cal: t.cal, pro: t.pro, yag: t.yag, karb: t.karb });
+
+            // 2) Duplicate temizliği — aynı id veya aynı ad+marka tekrarları.
+            //    Kullanıcı tarafından oluşturulmuş (seed dışı) kayıt her zaman seed kaydını ezer; ilk kayıt kazanır.
+            const gorulenId = new Set();
+            const gorulenAdMarka = new Set();
+            const temizBesinler = [];
+            besinler.forEach(b => {
+                const anahtarAdMarka = ((b.ad || '') + '|' + (b.marka || '')).toLocaleLowerCase('tr-TR');
+                const seedMi = tohumVeriler.some(t => t.id === b.id);
+                if (gorulenId.has(b.id) || gorulenAdMarka.has(anahtarAdMarka)) {
+                    // duplicate: eğer bu bir seed kaydıysa ve aynı ad+marka zaten varsa güvenle at
+                    rapor.duplicateTemizlenen++;
                     degisti = true;
+                    return;
                 }
+                gorulenId.add(b.id);
+                gorulenAdMarka.add(anahtarAdMarka);
+                if (!seedMi) rapor.korunanKullaniciKaydi++;
+                temizBesinler.push(b);
             });
+            besinler = temizBesinler;
+
+            // 3) Duplicate Yumurta özel kontrolü — adı tam "Yumurta" olanlar tek (sut kategorili) kayda indirilir
+            const yumurtalar = besinler.filter(b => (b.ad || '').toLocaleLowerCase('tr-TR') === 'yumurta');
+            if (yumurtalar.length > 1) {
+                const tutulacak = yumurtalar.find(b => b.kategori === 'sut') || yumurtalar[0];
+                besinler = besinler.filter(b => !(yumurtalar.includes(b) && b !== tutulacak));
+                rapor.duplicateTemizlenen += yumurtalar.length - 1;
+                degisti = true;
+            }
+
             if (degisti) localStorage.setItem('df_besinler', JSON.stringify(besinler));
+            localStorage.setItem('df_migration_version', String(MIGRATION_VERSION));
+            console.log('Migration tamamlandı\n- yeniden kategorize edilen: ' + rapor.yenidenKategorize
+                + '\n- duplicate temizlenen: ' + rapor.duplicateTemizlenen
+                + '\n- Balık düzeltmesi: ' + rapor.balikDuzeltme
+                + '\n- korunan kullanıcı kaydı: ' + rapor.korunanKullaniciKaydi
+                + '\n- değişmeden bırakılan kayıt: ' + rapor.degismedenBirakilan);
+        }
+
+        // SEED SENKRONİZASYONU — migration'dan bağımsız çalışır (her sürümde bir kez).
+        // Eksik seed besinleri kullanıcı kütüphanesine ekler; kullanıcı kayıtları asla ezilmez.
+        // Aynı isim+marka (marksız seed için ad) zaten varsa eklemez → duplicate garanti yok.
+        // df_seed_version sayesinde idempotent: ikinci çalıştırmada hiçbir şey eklemez.
+        function seedSenkronizeEt() {
+            const rapor = { eklenen: 0 };
+            const mevcutAdMarka = new Set(besinler.map(b => ((b.ad || '') + '|' + (b.marka || '')).toLocaleLowerCase('tr-TR')));
+            const mevcutId = new Set(besinler.map(b => b.id));
+            tohumVeriler.forEach(t => {
+                const tAnahtar = (t.ad + '|').toLocaleLowerCase('tr-TR'); // seed markasız
+                if (mevcutId.has(t.id) || mevcutAdMarka.has(tAnahtar)) return;
+                besinler.push({ id: t.id, ad: t.ad, marka: '', kategori: t.kategori, birim: t.birim, ref: t.ref, cal: t.cal, pro: t.pro, yag: t.yag, karb: t.karb });
+                mevcutId.add(t.id);
+                mevcutAdMarka.add(tAnahtar);
+                rapor.eklenen++;
+            });
+            if (rapor.eklenen > 0) {
+                localStorage.setItem('df_besinler', JSON.stringify(besinler));
+            }
+            localStorage.setItem('df_seed_version', String(SEED_VERSION));
+            if (rapor.eklenen > 0) console.log('Seed senkronizasyonu: ' + rapor.eklenen + ' besin kütüphaneye eklendi.');
+            return rapor.eklenen;
         }
 
         function profilMigrasyon() {
@@ -136,6 +382,7 @@
                     p.girdi = { cins: 'erkek', yas: 25, boy: 170, kilo: bilinenKilo, adimFaktor: 1.2, egzGun: 3, egzTip: 'agirlik', egzSure: 45, hedef: 'koruma' };
                     degisti = true;
                 }
+                if (!p.girdi.antrenmanGunleri) { p.girdi.antrenmanGunleri = []; degisti = true; }
                 if (!p.kiloGecmisi) {
                     p.kiloGecmisi = [{ id: benzersizId(), tarih: p.aktifTarih || bugununTarihi, kilo: p.girdi.kilo }];
                     degisti = true;
@@ -145,6 +392,7 @@
                 if (p.hedefKilo === undefined) { p.hedefKilo = null; degisti = true; }
                 if (!p.takviyeGecmisi) { p.takviyeGecmisi = {}; degisti = true; }
                 if (!p.gunlukAktivite) { p.gunlukAktivite = {}; degisti = true; }
+                if (!p.otomatikYedekler) { p.otomatikYedekler = []; degisti = true; }
             });
             if (degisti) localStorage.setItem('df_profiller', JSON.stringify(profiller));
         }
@@ -166,13 +414,28 @@
             if (degisti) localStorage.setItem('df_sablonlar', JSON.stringify(sablonlar));
         }
 
-        besinMigrasyon();
-        profilMigrasyon();
-        takviyeMigrasyon();
-        sablonMigrasyon();
+        // Migration sadece versiyon değişmişse çalışır (idempotent).
+        // Seed senkronizasyonu ise HER AÇILIŞTA kontrol edilir: df_seed_version < SEED_VERSION ise
+        // eksik seed'ler eklenir. Böylece eski kullanıcılar (df_migration_version == 2) da
+        // yeni seed genişlemesine ulaşır; ikinci açılışta duplicate oluşmaz.
+        //
+        // KULLANICI ÖZELLEŞTİRMESİ KORUMASI:
+        // Seed senkronizasyonu yalnızca EKSİK seed besinleri EKLER; mevcut kayıtların
+        // kategori/değerlerini ASLA ezmez. Kullanıcı bir seed besini kendi cihazında
+        // düzenlediyse (örn. kategori değiştirdi), o kayıt localStorage'da kalır ve
+        // yeni bir seed sürümü geldiğinde bile korunur — duplicate de oluşmaz.
+        if (localStorage.getItem('df_migration_version') !== String(MIGRATION_VERSION)) {
+            besinMigrasyon();
+            profilMigrasyon();
+            takviyeMigrasyon();
+            sablonMigrasyon();
+        }
+        seedSenkronizeEt();
 
         // SAYFA VE PROFİL YÖNETİMİ
         function baslangicKontrolu() {
+            temaBaslangictaYukle();
+            ogunSecenekleriniDoldur();
             if (profiller.length === 0) {
                 sayfaGoster('profil-ekrani');
             } else {
@@ -191,8 +454,11 @@
             const eslesme = {
                 'ana-ekran': 'nav-ana',
                 'tuketim-ekrani': 'nav-ekle',
-                'gecmis-ekrani': 'nav-istatistik',
+                'gecmis-ekrani': 'nav-ilerleme',
+                'gun-detay-ekrani': 'nav-ilerleme',
+                'analiz-ekrani': 'nav-analiz',
                 'daha-fazla-ekrani': 'nav-daha',
+                'ayarlar-ekrani': 'nav-daha',
                 'kutuphane-ekrani': 'nav-daha',
                 'besin-form-ekrani': 'nav-daha',
                 'kilo-ekrani': 'nav-daha',
@@ -209,14 +475,18 @@
             document.querySelectorAll('#sayfa-govde > div').forEach(d => d.classList.add('gizli'));
             document.getElementById(id).classList.remove('gizli');
             navAktifIsaretle(id);
+            window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
 
             if (id === 'ana-ekran') arayuzGuncelle();
             if (id === 'kutuphane-ekrani') kListele();
             if (id === 'tuketim-ekrani') tListele();
             if (id === 'gecmis-ekrani') gecmisListele();
+            if (id === 'analiz-ekrani') analizGuncelle();
+            if (id === 'gun-detay-ekrani') gunDetayGuncelle();
             if (id === 'kilo-ekrani') kiloEkraniGuncelle();
             if (id === 'takviye-ekrani') takviyeEkraniGuncelle();
             if (id === 'sablon-ekrani') sablonListele();
+            if (id === 'ayarlar-ekrani') { temaSeciciOlustur('tema-secici-ayarlar'); pwaKurulumBilgiGuncelle(); }
         }
 
         // TOAST BİLDİRİMLERİ
@@ -249,37 +519,6 @@
                 toast.classList.remove('goster');
                 setTimeout(() => toast.remove(), 300);
             }, sureMs);
-        }
-
-        // Bir günün tam raporunu toast olarak gösterir (tarih seçimi ile)
-        function gunRaporuGoster(tarih) {
-            let aktif = aktifProfiliGetir();
-            let kayit = aktif.gecmis.find(g => g.tarih === tarih);
-            let suDeger = null;
-            if (tarih === bugununTarihi) { kayit = { tarih: bugununTarihi, veriler: aktif.gunluk }; suDeger = aktif.su.miktar; }
-            else if (kayit) suDeger = (kayit.su !== undefined && kayit.su !== null) ? kayit.su : null;
-            if (!kayit) return;
-
-            let kcal = kayit.veriler.reduce((t, x) => t + parseFloat(x.cal), 0);
-            let pro = kayit.veriler.reduce((t, x) => t + parseFloat(x.pro), 0);
-            let kiloKaydi = (aktif.kiloGecmisi || []).find(k => k.tarih === tarih);
-
-            const konteyner = document.getElementById('toast-konteyner');
-            const toast = document.createElement('div');
-            toast.className = 'toast toast-rapor';
-            toast.innerHTML = `
-                <strong>${esc(tarih)}</strong>
-                <span>🔥 ${Math.round(kcal)} kcal</span>
-                <span>🥩 ${Math.round(pro)} g protein</span>
-                <span>💧 ${suDeger !== null ? (suDeger / 1000).toFixed(1) + ' L' : 'kayıt yok'}</span>
-                <span>⚖ ${kiloKaydi ? kiloKaydi.kilo.toFixed(1) + ' kg' : 'kayıt yok'}</span>
-            `;
-            konteyner.appendChild(toast);
-            requestAnimationFrame(() => toast.classList.add('goster'));
-            setTimeout(() => {
-                toast.classList.remove('goster');
-                setTimeout(() => toast.remove(), 300);
-            }, 4200);
         }
 
         // ⋮ MENÜ AÇMA/KAPAMA
@@ -381,7 +620,7 @@
             alan.querySelectorAll('.grafik-nokta').forEach(nokta => {
                 nokta.addEventListener('click', () => {
                     const tarih = nokta.getAttribute('data-tarih');
-                    if (tamRaporMu) { gunRaporuGoster(tarih); return; }
+                    if (tamRaporMu) { gunDetayAc(tarih); return; }
                     const deger = nokta.getAttribute('data-deger');
                     const birim = nokta.getAttribute('data-birim');
                     bildirGoster(tarih + ': ' + deger + ' ' + birim);
@@ -406,11 +645,31 @@
             document.getElementById('pr-egzersiz-yok-notu').classList.toggle('gizli', gun !== 0);
         }
 
+        // Profil formundaki "Antrenman Günlerin" gün seçim butonları
+        let prSeciliAntrenmanGunleri = [];
+        function prAntrenmanGunSecimOlustur() {
+            const alan = document.getElementById('pr-antrenman-gun-secim');
+            if (!alan) return;
+            alan.innerHTML = gunAdlari.map((ad, i) => {
+                let secili = prSeciliAntrenmanGunleri.includes(i);
+                return '<button type="button" class="btn-kucuk ' + (secili ? '' : 'btn-ikincil') + '" style="flex:0 0 auto;" onclick="prAntrenmanGunToggle(' + i + ')">' + esc(ad.slice(0, 3)) + '</button>';
+            }).join('');
+        }
+
+        function prAntrenmanGunToggle(i) {
+            if (prSeciliAntrenmanGunleri.includes(i)) prSeciliAntrenmanGunleri = prSeciliAntrenmanGunleri.filter(x => x !== i);
+            else prSeciliAntrenmanGunleri.push(i);
+            prAntrenmanGunSecimOlustur();
+        }
+
         function yeniProfilFormu() {
             document.querySelectorAll('#profil-ekrani input').forEach(inp => inp.value = '');
             document.getElementById('profil-form-baslik').innerText = 'Yeni Kişi Ekle';
             document.getElementById('profil-kaydet-btn').innerText = 'Profili Yarat ve Başla';
             document.getElementById('iptal-profil-btn').classList.remove('gizli');
+            document.getElementById('profil-sil-btn').classList.add('gizli');
+            prSeciliAntrenmanGunleri = [];
+            prAntrenmanGunSecimOlustur();
             egzersizAlanGuncelleForm();
             sayfaGoster('profil-ekrani');
         }
@@ -435,8 +694,64 @@
             document.getElementById('profil-form-baslik').innerText = 'Profili Düzenle';
             document.getElementById('profil-kaydet-btn').innerText = 'Değişiklikleri Kaydet';
             document.getElementById('iptal-profil-btn').classList.remove('gizli');
+            document.getElementById('profil-sil-btn').classList.remove('gizli');
+            prSeciliAntrenmanGunleri = [...(aktif.girdi.antrenmanGunleri || [])];
+            prAntrenmanGunSecimOlustur();
             egzersizAlanGuncelleForm();
             sayfaGoster('profil-ekrani');
+        }
+
+        // PROFİL SİL — Nutrio modal onaylı, 5 saniye içinde geri alınabilir.
+        // Silinen profil tam nesne olarak saklanır, "Geri Al" ile aynı konuma yeniden eklenir.
+        let sonSilinenProfil = null;
+
+        async function profilSil() {
+            let duzenleId = document.getElementById('pr-duzenle-id').value;
+            if (!duzenleId) { bildirGoster('Silinecek bir profil seçilmedi.', 'hata'); return; }
+            let p = profiller.find(x => x.id == duzenleId);
+            if (!p) { bildirGoster('Profil bulunamadı.', 'hata'); return; }
+
+            const onay = await modalOnay(
+                'Profili Sil',
+                '"' + p.ad + '" adlı profil ve bu profile ait tüm günlük, geçmiş, kilo ve takviye kayıtları silinecek. Silme işleminden sonra 5 saniye boyunca geri alabilirsin.',
+                true
+            );
+            if (!onay) return;
+
+            const eskiIndex = profiller.findIndex(x => x.id == duzenleId);
+            sonSilinenProfil = { profil: p, index: eskiIndex };
+
+            profiller = profiller.filter(x => x.id != duzenleId);
+            localStorage.setItem('df_profiller', JSON.stringify(profiller));
+
+            if (aktifProfilId == duzenleId) {
+                aktifProfilId = profiller.length > 0 ? profiller[0].id : null;
+                if (aktifProfilId) localStorage.setItem('df_aktif_profil_id', aktifProfilId);
+                else localStorage.removeItem('df_aktif_profil_id');
+            }
+
+            document.getElementById('pr-duzenle-id').value = '';
+            document.getElementById('iptal-profil-btn').classList.add('gizli');
+            document.getElementById('profil-sil-btn').classList.add('gizli');
+
+            bildirGoster('Profil silindi', null, () => {
+                if (!sonSilinenProfil) return;
+                profiller.splice(Math.min(sonSilinenProfil.index, profiller.length), 0, sonSilinenProfil.profil);
+                localStorage.setItem('df_profiller', JSON.stringify(profiller));
+                aktifProfilId = sonSilinenProfil.profil.id;
+                localStorage.setItem('df_aktif_profil_id', aktifProfilId);
+                sonSilinenProfil = null;
+                tarihKontrol(aktifProfilId);
+                arayuzGuncelle();
+                bildirGoster('Profil geri yüklendi');
+            });
+
+            if (profiller.length === 0) {
+                yeniProfilFormu();
+            } else {
+                tarihKontrol(aktifProfilId);
+                sayfaGoster('ana-ekran');
+            }
         }
 
         function metDegeri(tip) {
@@ -475,6 +790,7 @@
             let egzTip = document.getElementById('pr-egzersiz-tip').value;
             let egzSure = parseFloat(document.getElementById('pr-egzersiz-sure').value);
             let hedef = document.getElementById('pr-hedef').value;
+            let antrenmanGunleri = [...prSeciliAntrenmanGunleri];
 
             if (!yas || !boy || !kilo) { bildirGoster('Lütfen yaş, boy ve kilonuzu girin.', 'hata'); return; }
 
@@ -484,7 +800,7 @@
                 let p = profiller.find(x => x.id == duzenleId);
                 let eskiKilo = p.girdi.kilo;
                 p.ad = ad; p.kalori = hesap.kalori; p.pro = hesap.pro; p.yag = hesap.yag; p.karb = hesap.karb;
-                p.girdi = { cins, yas, boy, kilo, adimFaktor, egzGun, egzTip, egzSure, hedef };
+                p.girdi = { cins, yas, boy, kilo, adimFaktor, egzGun, egzTip, egzSure, hedef, antrenmanGunleri };
                 if (kilo !== eskiKilo) {
                     if (!p.kiloGecmisi) p.kiloGecmisi = [];
                     let bugunkuKayit = p.kiloGecmisi.find(g => g.tarih === bugununTarihi);
@@ -508,7 +824,8 @@
                 hedefKilo: null,
                 takviyeGecmisi: {},
                 gunlukAktivite: {},
-                girdi: { cins, yas, boy, kilo, adimFaktor, egzGun, egzTip, egzSure, hedef }
+                otomatikYedekler: [],
+                girdi: { cins, yas, boy, kilo, adimFaktor, egzGun, egzTip, egzSure, hedef, antrenmanGunleri }
             };
 
             profiller.push(yeniProfil);
@@ -545,15 +862,18 @@
         }
 
         // KÜTÜPHANE İŞLEMLERİ (CRUD)
+        // Merkezi kategori sekme üretimi — Tümü + Favoriler filtreleri + BESIN_KATEGORILERI
+        // (kütüphane, tüketim ve şablon besin seçimi aynı fonksiyonu kullanır; emoji yok)
+        function besinKategoriSekmeleriOlustur(alanId, aktifKey, secimFonkAdi) {
+            const kats = [{ key: 'tum', ad: 'Tümü' }, { key: 'favori', ad: 'Favoriler' },
+                ...BESIN_KATEGORILERI];
+            const alan = document.getElementById(alanId);
+            if (!alan) return;
+            alan.innerHTML = kats.map(k => '<button class="sekme-btn ' + (aktifKey === k.key ? 'aktif' : '') + '" onclick="' + secimFonkAdi + '(\'' + k.key + '\')">' + esc(k.ad) + '</button>').join('');
+        }
+
         function kategoriSekmeleriOlustur() {
-            const kats = [
-                { key: 'tum', ad: 'Tümü' }, { key: 'favori', ad: '★ Favoriler' },
-                { key: 'et', ad: 'Et/Tavuk' }, { key: 'sut', ad: 'Süt Ürünleri' },
-                { key: 'karb', ad: 'Karbonhidrat' }, { key: 'sebze', ad: 'Sebze' },
-                { key: 'meyve', ad: 'Meyve' }, { key: 'yag', ad: 'Yağlar' }, { key: 'diger', ad: 'Diğer' }
-            ];
-            const alan = document.getElementById('kategori-sekmeler');
-            alan.innerHTML = kats.map(k => '<button class="sekme-btn ' + (aktifKategori === k.key ? 'aktif' : '') + '" onclick="kategoriSec(\'' + k.key + '\')">' + esc(k.ad) + '</button>').join('');
+            besinKategoriSekmeleriOlustur('kategori-sekmeler', aktifKategori, 'kategoriSec');
         }
 
         function kategoriSec(key) { aktifKategori = key; kListele(); }
@@ -581,12 +901,12 @@
             const liste = document.getElementById('kutuphane-listesi');
             liste.innerHTML = '';
 
-            let filtreli = besinler.filter(b => {
+            let filtreli = besinleriSirala(besinler.filter(b => {
                 if (aktifKategori === 'favori' && !favoriler.includes(b.id)) return false;
                 if (aktifKategori !== 'tum' && aktifKategori !== 'favori' && b.kategori !== aktifKategori) return false;
                 if (arama && !gorunenAd(b).toLocaleLowerCase('tr-TR').includes(arama)) return false;
                 return true;
-            });
+            }));
 
             if (filtreli.length === 0) {
                 liste.innerHTML = '<div class="bos-durum">🔍 Bu kritere uyan besin bulunamadı.</div>';
@@ -612,7 +932,11 @@
 
         function besinFormuAc() {
             document.querySelectorAll('#besin-form-ekrani input').forEach(inp => inp.value = '');
-            document.getElementById('b-kategori').value = 'et';
+            // kategori select'ini merkezi tanımdan doldur (duplicate tanım yok)
+            const kategoriSel = document.getElementById('b-kategori');
+            const onceki = kategoriSel.value;
+            kategoriSel.innerHTML = BESIN_KATEGORILERI.map(k => '<option value="' + k.key + '">' + esc(k.ad) + '</option>').join('');
+            kategoriSel.value = BESIN_KATEGORILERI.some(k => k.key === onceki) ? onceki : 'et';
             document.getElementById('b-birim').value = 'g';
             sayfaGoster('besin-form-ekrani');
         }
@@ -638,6 +962,11 @@
         }
 
         function besinDuzenle(id) {
+            // Kategori select'ini her durumda merkezi tanımdan doldur (form ilk kez düzenleme için açılırsa boş kalmasın)
+            const kategoriSel = document.getElementById('b-kategori');
+            if (!kategoriSel.options.length) {
+                kategoriSel.innerHTML = BESIN_KATEGORILERI.map(k => '<option value="' + k.key + '">' + esc(k.ad) + '</option>').join('');
+            }
             let b = besinler.find(x => x.id === id);
             document.getElementById('b-id').value = b.id; document.getElementById('b-ad').value = b.ad;
             document.getElementById('b-marka').value = b.marka || '';
@@ -668,26 +997,64 @@
         }
 
         // TÜKETİM (KATEGORİ + ARAMA + SEÇ) VE ARAYÜZ
-        function tuketimEkranAc() {
+        // ÖĞÜN SEÇİCİLERİ — tüketim formundaki öğün select'ini doldurur
+        function ogunSecenekleriniDoldur() {
+            const sel = document.getElementById('t-ogun');
+            if (!sel) return;
+            const mevcut = sel.value;
+            sel.innerHTML = '<option value="belirsiz">Belirsiz</option>' +
+                OJUN_ETIKETLERI.map(o => '<option value="' + o.key + '">' + esc(o.ad) + '</option>').join('');
+            if (mevcut) sel.value = mevcut;
+        }
+
+        function ogunEtiketi(kayit) {
+            return OJUN_ADI[kayit && kayit.ogun] || 'Belirsiz';
+        }
+
+        // Kayıtları öğüne göre gruplanmış HTML üretir (Ana ekran ve Gün Detay ekranı ortak bileşeni).
+        // bosDurumHtml: liste boşsa gösterilecek TEK empty state (double empty state yok).
+        // Ana ekran "Henüz bir şey yemedin" + CTA verir; geçmiş gün detayı nötr metin gösterir.
+        function ogunGrupluListeHtml(kayitlar, satirHtml, bosDurumHtml) {
+            if (!kayitlar || kayitlar.length === 0) {
+                return bosDurumHtml || '<div class="bos-durum">🍽️ Bu gün için kayıt bulunmuyor.</div>';
+            }
+            const gruplar = new Map();
+            kayitlar.forEach(k => {
+                const key = OJUN_SIRASI.includes(k.ogun) ? k.ogun : 'belirsiz';
+                if (!gruplar.has(key)) gruplar.set(key, []);
+                gruplar.get(key).push(k);
+            });
+            let html = '';
+            OJUN_SIRASI.forEach(ogunKey => {
+                const kayitlar2 = gruplar.get(ogunKey);
+                if (!kayitlar2 || kayitlar2.length === 0) return;
+                html += '<div class="ogun-grup-baslik">' + esc(OJUN_ADI[ogunKey] || 'Belirsiz') + '</div>';
+                html += kayitlar2.map(satirHtml).join('');
+            });
+            return html;
+        }
+
+        // Hedef tarih: null = bugün (canlı); tarih verilirse o güne yazar (geçmiş gün düzenlenebilir)
+        let tuketimHedefTarih = null;
+
+        function tuketimEkranAc(hedefTarih) {
+            tuketimHedefTarih = hedefTarih || null;
             document.getElementById('t-duzenle-id').value = '';
             document.getElementById('t-miktar').value = '';
             document.getElementById('t-arama').value = '';
             tSeciliBesinId = null;
             tAktifKategori = 'tum';
-            document.getElementById('tuketim-form-baslik').innerText = 'Ne Yedin?';
-            document.getElementById('tuketim-kaydet-btn').innerText = 'Bugüne Ekle';
+            ogunSecenekleriniDoldur();
+            const tOgun = document.getElementById('t-ogun');
+            if (tOgun) tOgun.value = 'kahvalti';
+            const gecmisMi = tuketimHedefTarih && tuketimHedefTarih !== bugununTarihi;
+            document.getElementById('tuketim-form-baslik').innerText = gecmisMi ? 'Ne Yedin? — ' + formatTarihKisa(tuketimHedefTarih) : 'Ne Yedin?';
+            document.getElementById('tuketim-kaydet-btn').innerText = gecmisMi ? 'O Güne Ekle' : 'Bugüne Ekle';
             sayfaGoster('tuketim-ekrani');
         }
 
         function tKategoriSekmeleriOlustur() {
-            const kats = [
-                { key: 'tum', ad: 'Tümü' }, { key: 'favori', ad: '★ Favoriler' },
-                { key: 'et', ad: 'Et/Tavuk' }, { key: 'sut', ad: 'Süt Ürünleri' },
-                { key: 'karb', ad: 'Karbonhidrat' }, { key: 'sebze', ad: 'Sebze' },
-                { key: 'meyve', ad: 'Meyve' }, { key: 'yag', ad: 'Yağlar' }, { key: 'diger', ad: 'Diğer' }
-            ];
-            const alan = document.getElementById('t-kategori-sekmeler');
-            alan.innerHTML = kats.map(k => '<button class="sekme-btn ' + (tAktifKategori === k.key ? 'aktif' : '') + '" onclick="tKategoriSec(\'' + k.key + '\')">' + esc(k.ad) + '</button>').join('');
+            besinKategoriSekmeleriOlustur('t-kategori-sekmeler', tAktifKategori, 'tKategoriSec');
         }
 
         function tKategoriSec(key) { tAktifKategori = key; tListele(); }
@@ -696,13 +1063,12 @@
             tKategoriSekmeleriOlustur();
             const arama = (document.getElementById('t-arama').value || '').toLocaleLowerCase('tr-TR');
             const alan = document.getElementById('t-secim-listesi');
-            let filtreli = besinler.filter(b => {
+            let filtreli = besinleriSirala(besinler.filter(b => {
                 if (tAktifKategori === 'favori' && !favoriler.includes(b.id)) return false;
                 if (tAktifKategori !== 'tum' && tAktifKategori !== 'favori' && b.kategori !== tAktifKategori) return false;
                 if (arama && !gorunenAd(b).toLocaleLowerCase('tr-TR').includes(arama)) return false;
                 return true;
-            });
-            filtreli.sort((a, b) => (favoriler.includes(a.id) ? 0 : 1) - (favoriler.includes(b.id) ? 0 : 1));
+            }));
 
             if (filtreli.length === 0) {
                 alan.innerHTML = '<div class="bos-durum">🔍 Eşleşen besin yok.</div>';
@@ -735,6 +1101,7 @@
         function tuketimKaydet() {
             let id = tSeciliBesinId;
             let mik = parseFloat(document.getElementById('t-miktar').value);
+            let ogun = document.getElementById('t-ogun') ? document.getElementById('t-ogun').value : 'belirsiz';
             if (!id) { bildirGoster('Lütfen bir besin seç', 'hata'); return; }
             if (!mik || mik <= 0) { bildirGoster('Geçerli bir miktar gir', 'hata'); return; }
 
@@ -745,26 +1112,44 @@
             let aktif = aktifProfiliGetir();
             let duzenleId = document.getElementById('t-duzenle-id').value;
 
+            // Hedef gün: bugünse canlı günlüğe, geçmiş günse arşive yazar (GÜN = tarih)
+            const gecmisHedef = tuketimHedefTarih && tuketimHedefTarih !== bugununTarihi ? tuketimHedefTarih : null;
+            let hedefKayitlar;
+            if (gecmisHedef) {
+                let gun = aktif.gecmis.find(g => g.tarih === gecmisHedef);
+                if (!gun) { gun = { tarih: gecmisHedef, veriler: [], su: null }; aktif.gecmis.push(gun); }
+                hedefKayitlar = gun.veriler;
+            } else {
+                hedefKayitlar = aktif.gunluk;
+            }
+
             if (duzenleId) {
-                let kayit = aktif.gunluk.find(x => x.id == duzenleId);
+                let kayit = hedefKayitlar.find(x => x.id == duzenleId) || aktif.gunluk.find(x => x.id == duzenleId);
+                if (!kayit) { bildirGoster('Düzenlenecek kayıt bulunamadı', 'hata'); return; }
                 kayit.besinId = b.id; kayit.ad = b.ad; kayit.marka = b.marka || ''; kayit.miktar = mik; kayit.birim = b.birim;
+                kayit.ogun = ogun;
                 kayit.cal = Math.round(b.cal * carpan); kayit.pro = (b.pro * carpan).toFixed(1);
                 kayit.yag = (b.yag * carpan).toFixed(1); kayit.karb = (b.karb * carpan).toFixed(1);
                 bildirGoster('✓ ' + gorunenAd(b) + ' güncellendi');
             } else {
-                aktif.gunluk.push({
-                    id: benzersizId(), besinId: b.id, ad: b.ad, marka: b.marka || '', miktar: mik, birim: b.birim,
+                hedefKayitlar.push({
+                    id: benzersizId(), besinId: b.id, ad: b.ad, marka: b.marka || '', miktar: mik, birim: b.birim, ogun: ogun,
                     cal: Math.round(b.cal * carpan), pro: (b.pro * carpan).toFixed(1),
                     yag: (b.yag * carpan).toFixed(1), karb: (b.karb * carpan).toFixed(1)
                 });
-                bildirGoster('✓ ' + gorunenAd(b) + ' ' + mik + ' ' + birimEtiket(b.birim) + ' olarak eklendi');
+                bildirGoster('✓ ' + gorunenAd(b) + ' ' + mik + ' ' + birimEtiket(b.birim) + ' olarak eklendi' + (gecmisHedef ? ' (' + formatTarihKisa(gecmisHedef) + ')' : ''));
             }
 
             localStorage.setItem('df_profiller', JSON.stringify(profiller));
             document.getElementById('t-miktar').value = '';
             document.getElementById('t-duzenle-id').value = '';
             tSeciliBesinId = null;
-            sayfaGoster('ana-ekran');
+            if (gecmisHedef) {
+                gunDetayAktifTarih = gecmisHedef;
+                sayfaGoster('gun-detay-ekrani');
+            } else {
+                sayfaGoster('ana-ekran');
+            }
         }
 
         function tuketimDuzenleAc(kayitId) {
@@ -775,6 +1160,9 @@
             document.getElementById('t-miktar').value = kayit.miktar;
             tSeciliBesinId = kayit.besinId || null;
             tAktifKategori = 'tum';
+            ogunSecenekleriniDoldur();
+            const tOgun = document.getElementById('t-ogun');
+            if (tOgun) tOgun.value = OJUN_SIRASI.includes(kayit.ogun) ? kayit.ogun : 'belirsiz';
             document.getElementById('t-arama').value = gorunenAd(kayit);
             document.getElementById('tuketim-form-baslik').innerText = 'Kaydı Düzenle';
             document.getElementById('tuketim-kaydet-btn').innerText = 'Değişiklikleri Kaydet';
@@ -833,6 +1221,18 @@
         }
 
         // BUGÜNKÜ AKTİVİTE (adım) — profildeki ortalamadan sapmayı kalori hedefine ekler
+        function gunTipiRozetGoster(aktif) {
+            const alan = document.getElementById('gun-tipi-rozet-alani');
+            if (!alan) return;
+            const antrenmanGunleri = (aktif.girdi && aktif.girdi.antrenmanGunleri) || [];
+            if (antrenmanGunleri.length === 0) { alan.innerHTML = ''; return; }
+            const bugunIndex = new Date().getDay();
+            const antrenmanGunuMu = antrenmanGunleri.includes(bugunIndex);
+            alan.innerHTML = antrenmanGunuMu
+                ? '<span class="gun-tipi-rozet antrenman">🏋️ Antrenman Günü</span>'
+                : '<span class="gun-tipi-rozet dinlenme">🛋️ Dinlenme Günü</span>';
+        }
+
         function bugunAktiviteGetir(aktif) {
             return (aktif.gunlukAktivite && aktif.gunlukAktivite[bugununTarihi]) || null;
         }
@@ -882,13 +1282,35 @@
             arayuzGuncelle();
         }
 
+        // Günlük egzersiz durumu: 'yapildi' | 'planli_degil' | 'yapmadi'
+        function bugunEgzersizDurumAyarla(durum) {
+            let aktif = aktifProfiliGetir();
+            if (!aktif.gunlukAktivite) aktif.gunlukAktivite = {};
+            let mevcut = aktif.gunlukAktivite[bugununTarihi] || {};
+            mevcut.durum = durum;
+            aktif.gunlukAktivite[bugununTarihi] = mevcut;
+            localStorage.setItem('df_profiller', JSON.stringify(profiller));
+            arayuzGuncelle();
+        }
+
         function bugunEgzersizSil(id) {
             let aktif = aktifProfiliGetir();
             let mevcut = aktif.gunlukAktivite && aktif.gunlukAktivite[bugununTarihi];
             if (!mevcut || !mevcut.egzersizler) return;
+            const eskiIndex = mevcut.egzersizler.findIndex(e => e.id == id);
+            const silinen = mevcut.egzersizler[eskiIndex];
+            if (!silinen) return;
             mevcut.egzersizler = mevcut.egzersizler.filter(e => e.id != id);
             localStorage.setItem('df_profiller', JSON.stringify(profiller));
             arayuzGuncelle();
+            bildirGoster('🏋️ Egzersiz silindi', null, () => {
+                let m = aktif.gunlukAktivite && aktif.gunlukAktivite[bugununTarihi];
+                if (!m) return;
+                if (!m.egzersizler) m.egzersizler = [];
+                m.egzersizler.splice(Math.min(eskiIndex, m.egzersizler.length), 0, silinen);
+                localStorage.setItem('df_profiller', JSON.stringify(profiller));
+                arayuzGuncelle();
+            });
         }
 
         const egzersizAdlari = { agirlik: 'Ağırlık', kosu: 'Koşu', futbol: 'Futbol', bisiklet: 'Bisiklet', kardiyo: 'Kardiyo', karisik: 'Karışık' };
@@ -1036,7 +1458,7 @@
 
             // Protein kaynağı adayları: et ve süt/yumurta kategorisinden, kcal-verimliliğine göre sıralı
             let proteinAdaylari = besinler.filter(b => (b.kategori === 'et' || b.kategori === 'sut') && b.pro > 0).sort((a, b) => (b.pro / b.cal) - (a.pro / a.cal));
-            let karbAdaylari = besinler.filter(b => b.kategori === 'karb' && b.karb > 0).sort((a, b) => b.karb - a.karb);
+            let karbAdaylari = besinler.filter(b => b.kategori === 'tahil' && b.karb > 0).sort((a, b) => b.karb - a.karb);
 
             if (proteinAdaylari.length === 0 || karbAdaylari.length === 0) {
                 govde.innerHTML = '<p style="color:var(--yazi-pasif); margin:0;">Öneri üretmek için besin kütüphaneden yeterli çeşit yok. Kütüphaneye biraz daha besin eklersen öneri üretebilirim.</p>';
@@ -1309,6 +1731,9 @@
         const sablonKategoriAdlari = { kahvalti: '🍳 Kahvaltı', ogle: '🥗 Öğle', aksam: '🍽 Akşam', antrenman: '💪 Antrenman Sonrası', kendi: '📌 Kendi Öğünlerim' };
 
         function sablonFormuAc() {
+            sbDuzenlenenId = null;
+            document.getElementById('sablon-form-baslik').innerText = 'Şablon Oluştur';
+            document.getElementById('sablon-kaydet-btn').innerText = 'Şablonu Kaydet';
             document.getElementById('sb-ad').value = '';
             document.getElementById('sb-kategori').value = 'kahvalti';
             document.getElementById('sb-arama').value = '';
@@ -1323,7 +1748,8 @@
         function sablonBesinListele() {
             const arama = (document.getElementById('sb-arama').value || '').toLocaleLowerCase('tr-TR');
             const alan = document.getElementById('sb-besin-listesi');
-            let filtreli = arama ? besinler.filter(b => gorunenAd(b).toLocaleLowerCase('tr-TR').includes(arama)) : besinler.slice(0, 8);
+            let havuz = besinleriSirala(besinler);
+            let filtreli = arama ? havuz.filter(b => gorunenAd(b).toLocaleLowerCase('tr-TR').includes(arama)) : havuz.slice(0, 8);
             alan.innerHTML = filtreli.map(b => `<div class="liste-elemani" style="padding:10px 12px; cursor:pointer;" onclick="sablonBesinSec(${b.id})"><strong style="font-size:13.5px;">${esc(gorunenAd(b))}</strong><span class="liste-detay">${b.ref} ${esc(birimEtiket(b.birim))} | ${b.cal} kcal</span></div>`).join('');
         }
 
@@ -1377,13 +1803,24 @@
             if (!ad) { bildirGoster('Şablona bir isim ver', 'hata'); return; }
             if (sbTaslakIcerik.length === 0) { bildirGoster('En az bir malzeme ekle', 'hata'); return; }
             let porsiyonSayisi = parseFloat(document.getElementById('sb-porsiyon-sayisi').value) || 1;
-            sablonlar.push({
-                id: benzersizId(), ad: ad, kategori: document.getElementById('sb-kategori').value,
-                porsiyonSayisi: porsiyonSayisi,
-                icerikler: sbTaslakIcerik.map(o => ({ besinId: o.besinId, ad: o.ad, marka: o.marka || '', miktar: o.miktar, ref: o.ref, birim: o.birim }))
-            });
-            localStorage.setItem('df_sablonlar', JSON.stringify(sablonlar));
-            bildirGoster('📋 Şablon kaydedildi');
+            const icerikler = sbTaslakIcerik.map(o => ({ besinId: o.besinId, ad: o.ad, marka: o.marka || '', miktar: o.miktar, ref: o.ref, birim: o.birim }));
+            if (sbDuzenlenenId) {
+                // Düzenleme modu: mevcut şablonun üzerine yaz (id ve konum korunur)
+                const idx = sablonlar.findIndex(x => x.id == sbDuzenlenenId);
+                if (idx === -1) { bildirGoster('Düzenlenecek şablon bulunamadı', 'hata'); return; }
+                sablonlar[idx] = { ...sablonlar[idx], ad, kategori: document.getElementById('sb-kategori').value, porsiyonSayisi, icerikler };
+                localStorage.setItem('df_sablonlar', JSON.stringify(sablonlar));
+                bildirGoster('📋 Şablon güncellendi');
+            } else {
+                sablonlar.push({
+                    id: benzersizId(), ad: ad, kategori: document.getElementById('sb-kategori').value,
+                    porsiyonSayisi: porsiyonSayisi,
+                    icerikler
+                });
+                localStorage.setItem('df_sablonlar', JSON.stringify(sablonlar));
+                bildirGoster('📋 Şablon kaydedildi');
+            }
+            sbDuzenlenenId = null;
             sayfaGoster('sablon-ekrani');
         }
 
@@ -1431,7 +1868,10 @@
                             <span class="liste-detay">${esc(icerikMetni)}</span>
                             <span class="liste-detay">≈ ${Math.round(toplamKcal)} kcal${esc(porsiyonMetni)}</span>
                         </div>
-                        <button class="btn-tehlike btn-kucuk" onclick="sablonSil('${s.id}')">✖</button>
+                        <div class="buton-grubu" style="margin:0; max-width:90px;">
+                            <button class="btn-duzenle" onclick="sablonDuzenleAc('${s.id}')">✎</button>
+                            <button class="btn-tehlike btn-kucuk" onclick="sablonSil('${s.id}')">✖</button>
+                        </div>
                     </div>
                     <div class="buton-grubu" style="margin-top:10px;">
                         <button onclick="sablonUygula('${s.id}', 1)">${porsiyonSayisi > 1 ? '1 Porsiyon Ekle' : esc(s.ad) + ' Ekle'}</button>
@@ -1439,6 +1879,34 @@
                     </div>
                 </div>`;
             }).join('');
+        }
+
+        // ŞABLON DÜZENLEME — yeniden adlandır, besin ekle/çıkar, miktar ve porsiyon değiştir.
+        // Aynı taslak mekanizması (sbTaslakIcerik) yeniden kullanılır: düzenleme modunda
+        // "Kaydet" mevcut şablonun üzerine yazar, yeni şablon oluşturmaz.
+        let sbDuzenlenenId = null;
+
+        function sablonDuzenleAc(id) {
+            const s = sablonlar.find(x => x.id == id);
+            if (!s) return;
+            sbDuzenlenenId = id;
+            document.getElementById('sb-ad').value = s.ad;
+            document.getElementById('sb-kategori').value = s.kategori;
+            document.getElementById('sb-arama').value = '';
+            document.getElementById('sb-miktar').value = '';
+            document.getElementById('sb-porsiyon-sayisi').value = s.porsiyonSayisi || 1;
+            sbTaslakIcerik = s.icerikler.map(o => ({ ...o }));
+            document.getElementById('sablon-form-baslik').innerText = 'Şablonu Düzenle';
+            document.getElementById('sablon-kaydet-btn').innerText = 'Değişiklikleri Kaydet';
+            sablonBesinListele();
+            sablonIcerikGoster();
+            sayfaGoster('sablon-form-ekrani');
+        }
+
+        function sablonFormuYeni() {
+            sbDuzenlenenId = null;
+            document.getElementById('sablon-form-baslik').innerText = 'Şablon Oluştur';
+            document.getElementById('sablon-kaydet-btn').innerText = 'Şablonu Kaydet';
         }
 
         function sablonUygula(id, porsiyonAdedi) {
@@ -1475,6 +1943,7 @@
             let aktif = aktifProfiliGetir();
             suGunKontrol(aktif);
             document.getElementById('ana-baslik').innerText = (aktif.ad ? aktif.ad + "'nın" : 'Bugünün') + ' Günlüğü';
+            gunTipiRozetGoster(aktif);
 
             let hedefler = bugunkuHedefleriHesapla(aktif);
 
@@ -1482,17 +1951,17 @@
             let liste = document.getElementById('yenenler-listesi');
             liste.innerHTML = '';
 
-            if (aktif.gunluk.length === 0) {
-                liste.innerHTML = '<div class="bos-durum">🍽️ Henüz bir şey yemedin. Yukarıdan ekleyebilirsin.</div>';
-            }
-
             aktif.gunluk.forEach(t => {
                 tCal += parseFloat(t.cal); tPro += parseFloat(t.pro); tYag += parseFloat(t.yag); tKarb += parseFloat(t.karb);
+            });
+            // Öğüne göre gruplanmış liste (Kahvaltı/Öğle/Akşam/Ara Öğün/Belirsiz)
+            // BUGÜN için TEK empty state: "Henüz bir şey yemedin" + Besin Ekle CTA
+            liste.innerHTML = ogunGrupluListeHtml(aktif.gunluk, t => {
                 let birimYazi = t.birim ? birimEtiket(t.birim) : 'birim';
-                liste.innerHTML += `
+                return `
                     <div class="liste-elemani" data-tid="${t.id}" id="tuketim-${t.id}">
                         <div class="swipe-arka"><span class="sw-duzenle">✎ Düzenle</span><span class="sw-sil">Sil 🗑</span></div>
-                        <div><strong style="font-size:15px;">${esc(gorunenAd(t))}</strong><span class="liste-detay">${t.miktar} ${esc(birimYazi)}</span></div>
+                        <div><strong style="font-size:15px;">${esc(gorunenAd(t))}</strong><span class="liste-detay">${t.miktar} ${esc(birimYazi)} · ${esc(ogunEtiketi(t))}</span></div>
                         <div style="display:flex; align-items:center; gap:10px;">
                             <div style="text-align:right;">
                                 <strong style="color:var(--vurgu-renk); font-size:16px;">${t.cal} kcal</strong>
@@ -1507,7 +1976,7 @@
                             </div>
                         </div>
                     </div>`;
-            });
+            }, '<div class="bos-durum">🍽️ Henüz bir şey yemedin.<br><button class="btn-kucuk" style="width:auto; margin:12px auto 0; display:inline-block;" onclick="tuketimEkranAc()">＋ Besin Ekle</button></div>');
             aktif.gunluk.forEach(t => swipeBagla('tuketim-' + t.id, t.id));
 
             document.getElementById('gun-kalori').innerText = Math.round(tCal);
@@ -1566,6 +2035,19 @@
                 }).join('');
             }
 
+            // Egzersiz durum butonlarını (Yaptım / Planlı değildi / Yapmadım) senkronize et
+            const egzDurumGrupEl = document.getElementById('egz-durum-grup');
+            if (egzDurumGrupEl) {
+                let bugunAkt = bugunAktiviteGetir(aktif);
+                let seciliDurum = bugunAkt ? bugunAkt.durum : null;
+                const durumSirasi = ['yapildi', 'planli_degil', 'yapmadi'];
+                const durumClassAdi = { yapildi: 'aktif-yapildi', planli_degil: 'aktif-planli-degil', yapmadi: 'aktif-yapmadi' };
+                Array.from(egzDurumGrupEl.children).forEach((btn, i) => {
+                    btn.classList.remove('aktif-yapildi', 'aktif-planli-degil', 'aktif-yapmadi');
+                    if (durumSirasi[i] === seciliDurum) btn.classList.add(durumClassAdi[seciliDurum]);
+                });
+            }
+
             document.getElementById('su-miktar').innerText = aktif.su.miktar + ' ml';
             document.getElementById('su-hedef-yazi').innerText = 'Hedef: ' + aktif.suHedefMl + ' ml';
             document.getElementById('ilerleme-su').style.width = Math.min(100, Math.round((aktif.su.miktar / aktif.suHedefMl) * 100)) + '%';
@@ -1578,17 +2060,42 @@
             takviyeMiniGuncelle();
         }
 
-        // GEÇMİŞ (okuma + silme + miktar düzenleme + analitik)
+        // GEÇMİŞ / İLERLEME (okuma + silme + miktar düzenleme + analitik)
+        // İlerleme / Trend: Kalori/Protein/Karb/Yağ sekmeleri arasında geçiş yapılır
+        const TREND_METRIKEN = [
+            { key: 'cal', ad: 'Kalori', birim: 'kcal', renk: 'var(--vurgu-renk)' },
+            { key: 'pro', ad: 'Protein', birim: 'g', renk: '#4dc3ff' },
+            { key: 'karb', ad: 'Karbonhidrat', birim: 'g', renk: '#ffcc4d' },
+            { key: 'yag', ad: 'Yağ', birim: 'g', renk: '#ff8a8a' }
+        ];
+        let trendAktivMetrik = 'cal';
+
+        function trendMetrikSec(key) {
+            trendAktivMetrik = key;
+            trendGuncelle();
+        }
+
+        function trendMetrikSekmeleriOlustur() {
+            const alan = document.getElementById('trend-makro-sekmeler');
+            if (!alan) return;
+            alan.innerHTML = TREND_METRIKEN.map(m =>
+                '<button class="sekme-btn ' + (trendAktivMetrik === m.key ? 'aktif' : '') + '" onclick="trendMetrikSec(\'' + m.key + '\')">' + esc(m.ad) + '</button>'
+            ).join('');
+        }
+
         function trendGuncelle() {
             let aktif = aktifProfiliGetir();
+            trendMetrikSekmeleriOlustur();
             let hepsi = [...aktif.gecmis];
             if (aktif.gunluk.length > 0) hepsi.push({ tarih: bugununTarihi, veriler: aktif.gunluk });
             let son14 = hepsi.slice(-14);
-            let kaloriler = son14.map(g => g.veriler.reduce((t, x) => t + parseFloat(x.cal), 0));
+            const metrik = TREND_METRIKEN.find(m => m.key === trendAktivMetrik) || TREND_METRIKEN[0];
+            let degerler = son14.map(g => g.veriler.reduce((t, x) => t + parseFloat(x[metrik.key]), 0));
             let tarihler = son14.map(g => g.tarih);
             const alan = document.getElementById('trend-grafik-alan');
-            alan.innerHTML = kaloriler.length >= 2
-                ? svgCizgiGrafik(kaloriler, 320, 100, 'var(--vurgu-renk)', aktif.kalori, tarihler, 'kcal')
+            const hedefCizgi = metrik.key === 'cal' ? aktif.kalori : null;
+            alan.innerHTML = degerler.length >= 2
+                ? svgCizgiGrafik(degerler, 320, 100, metrik.renk, hedefCizgi, tarihler, metrik.birim)
                 : '<div class="bos-durum">📈 Trend görmek için en az 2 günlük geçmiş kaydı gerekli.</div>';
             grafikTiklamalariBagla('trend-grafik-alan', true);
         }
@@ -1640,17 +2147,257 @@
             </div>`;
         }
 
-        function gecmisMiktarDuzenle(gunIndex, ogeId) {
+        // HAFTALIK KARŞILAŞTIRMA — bu hafta vs. önceki hafta. Yalnızca gerçek veriler kullanılır;
+        // hafta başına yeterli veri yoksa karşılaştırma değeri gösterilmez.
+        function haftalikKarsilastirmaGuncelle() {
+            let aktif = aktifProfiliGetir();
+            const alan = document.getElementById('haftalik-karsilastirma-alan');
+            if (!alan) return;
+
+            const simdi = tarihToDate(bugununTarihi);
+            const buHaftada = g => tarihFarkiGun(bugununTarihi, g.tarih) < 7 && tarihFarkiGun(bugununTarihi, g.tarih) >= 0;
+            const gecenHaftada = g => { const d = tarihFarkiGun(bugununTarihi, g.tarih); return d >= 7 && d < 14; };
+
+            const hepsi = [...aktif.gecmis];
+            if (aktif.gunluk.length > 0) hepsi.push({ tarih: bugununTarihi, veriler: aktif.gunluk, su: aktif.su.miktar });
+            const buHafta = hepsi.filter(buHaftada);
+            const gecenHafta = hepsi.filter(gecenHaftada);
+
+            if (buHafta.length < 3 || gecenHafta.length < 3) {
+                alan.innerHTML = '<div class="bos-durum">📊 Haftalık karşılaştırma için bu hafta ve geçen hafta en az 3\'er günlük kayıt gerekli.</div>';
+                return;
+            }
+
+            const metrikDef = [
+                { key: 'cal', ad: 'Kalori', birim: 'kcal' },
+                { key: 'pro', ad: 'Protein', birim: 'g' },
+                { key: 'karb', ad: 'Karbonhidrat', birim: 'g' },
+                { key: 'yag', ad: 'Yağ', birim: 'g' }
+            ];
+            const ort = (gunler, key) => gunler.reduce((t, g) => t + g.veriler.reduce((tt, x) => tt + parseFloat(x[key]), 0), 0) / gunler.length;
+
+            const satirlar = metrikDef.map(m => {
+                const a = ort(buHafta, m.key), b = ort(gecenHafta, m.key);
+                const diff = a - b;
+                const pct = b > 0 ? Math.round((diff / b) * 100) : null;
+                const renk = diff > 0 ? 'var(--vurgu-renk)' : 'var(--yazi-pasif)';
+                const yon = diff >= 0 ? '+' : '';
+                return `<div class="mini-satir"><span>${esc(m.ad)}</span><span style="color:${renk};">${yon}${Math.round(diff)} ${m.birim}${pct !== null ? ' (' + yon + pct + '%)' : ''}</span></div>`;
+            });
+
+            // Su — yalnızca her iki haftada da kayıt varsa
+            const suBu = buHafta.filter(g => g.su !== undefined && g.su !== null);
+            const suGecen = gecenHafta.filter(g => g.su !== undefined && g.su !== null);
+            if (suBu.length >= 2 && suGecen.length >= 2) {
+                const a = suBu.reduce((t2, g) => t2 + g.su, 0) / suBu.length;
+                const b = suGecen.reduce((t2, g) => t2 + g.su, 0) / suGecen.length;
+                const diff = Math.round(a - b);
+                satirlar.push(`<div class="mini-satir"><span>Su</span><span style="color:${diff >= 0 ? 'var(--vurgu-renk)' : 'var(--yazi-pasif)'};">${diff >= 0 ? '+' : ''}${diff} ml</span></div>`);
+            }
+
+            // Kilo — yalnızca her iki haftada da en az 2 ölçüm varsa
+            const kiloBu = aktif.kiloGecmisi ? aktif.kiloGecmisi.filter(buHaftada) : [];
+            const kiloGecen = aktif.kiloGecmisi ? aktif.kiloGecmisi.filter(gecenHaftada) : [];
+            if (kiloBu.length >= 2 && kiloGecen.length >= 2) {
+                const a = kiloBu[kiloBu.length - 1].kilo - kiloBu[0].kilo;
+                const b = kiloGecen[kiloGecen.length - 1].kilo - kiloGecen[0].kilo;
+                const diff = a - b;
+                satirlar.push(`<div class="mini-satir"><span>Kilo Değişimi</span><span style="color:${diff <= 0 ? 'var(--basari-renk)' : 'var(--tehlike-renk)'};">${diff >= 0 ? '+' : ''}${diff.toFixed(1)} kg</span></div>`);
+            }
+
+            alan.innerHTML = satirlar.join('');
+        }
+
+        // ANALİZ — gerçek verilerden kişisel örüntüler. Minimum veri miktarı
+        // her analiz için tanımlıdır; yeterli veri yoksa TAHMİN ÜRETİLMEZ.
+        function analizGuncelle() {
+            icgorulerGuncelle();
+            analizOzetGuncelle();
+        }
+
+        // Genel özet kartı: kayıt sayısı + ortalama kalori/protein/su (yalnızca gerçek veri)
+        function analizOzetGuncelle() {
+            const alan = document.getElementById('analiz-ozet-alan');
+            if (!alan) return;
+            const aktif = aktifProfiliGetir();
+            const hepsi = [...aktif.gecmis];
+            if (aktif.gunluk.length > 0) hepsi.push({ tarih: bugununTarihi, veriler: aktif.gunluk, su: aktif.su.miktar });
+
+            if (hepsi.length === 0) {
+                alan.innerHTML = '<div class="bos-durum">Henüz kayıt yok. Günlük kayıtlarını girdikçe analizler burada belirir.</div>';
+                return;
+            }
+
+            const ort = hesaplaGunOrtalamalari(hepsi);
+            const hucreler = [
+                `<div class="analitik-hucre"><strong>${hepsi.length} gün</strong><span>Kayıtlı Gün</span></div>`,
+                `<div class="analitik-hucre"><strong>${Math.round(ort.kalori)} kcal</strong><span>Ort. Günlük Kalori</span></div>`,
+                `<div class="analitik-hucre"><strong>${Math.round(ort.protein)} g</strong><span>Ort. Günlük Protein</span></div>`
+            ];
+            if (ort.su !== null) {
+                hucreler.push(`<div class="analitik-hucre"><strong>${(ort.su / 1000).toFixed(1)} L</strong><span>Ort. Günlük Su</span></div>`);
+            }
+            alan.innerHTML = `<div class="analitik-grid">${hucreler.join('')}</div>`;
+        }
+
+        // Gün listesinden ortalama hesaplayan ortak yardımcı (Analiz ekranı kullanır)
+        function hesaplaGunOrtalamalari(gunler) {
+            const toplam = { kalori: 0, protein: 0, yag: 0, karb: 0 };
+            let suToplam = 0, suGunSayisi = 0;
+            gunler.forEach(g => {
+                toplam.kalori += g.veriler.reduce((t, x) => t + parseFloat(x.cal), 0);
+                toplam.protein += g.veriler.reduce((t, x) => t + parseFloat(x.pro), 0);
+                toplam.yag += g.veriler.reduce((t, x) => t + parseFloat(x.yag), 0);
+                toplam.karb += g.veriler.reduce((t, x) => t + parseFloat(x.karb), 0);
+                if (g.su !== undefined && g.su !== null) { suToplam += g.su; suGunSayisi++; }
+            });
+            const n = gunler.length || 1;
+            return {
+                kalori: toplam.kalori / n,
+                protein: toplam.protein / n,
+                yag: toplam.yag / n,
+                karb: toplam.karb / n,
+                su: suGunSayisi > 0 ? suToplam / suGunSayisi : null
+            };
+        }
+
+        function icgorulerGuncelle() {
+            let aktif = aktifProfiliGetir();
+            const alan = document.getElementById('icgoru-alan');
+            if (!alan) return;
+            const satirlar = [];
+
+            const hepsi = [...aktif.gecmis];
+            if (aktif.gunluk.length > 0) hepsi.push({ tarih: bugununTarihi, veriler: aktif.gunluk, su: aktif.su.miktar });
+
+            if (hepsi.length >= 5) {
+                // En sık tüketilen besinler (en az 5 günlük veri, en az 3 kez tüketilen)
+                const sayac = new Map();
+                hepsi.forEach(g => g.veriler.forEach(t => {
+                    const key = (t.marka || '') + ' ' + t.ad;
+                    sayac.set(key, (sayac.get(key) || 0) + 1);
+                }));
+                const top = [...sayac.entries()].filter(([, c]) => c >= 3).sort((a, b) => b[1] - a[1]).slice(0, 3);
+                top.forEach(([ad, c]) => satirlar.push(`📊 ${esc(ad)}: son ${hepsi.length} günün ${c} gününde tüketilmiş`));
+
+                // En sık tüketilen kategori
+                const katSayac = new Map();
+                hepsi.forEach(g => g.veriler.forEach(t => {
+                    const b = besinler.find(x => x.id === t.besinId);
+                    if (b && b.kategori) katSayac.set(b.kategori, (katSayac.get(b.kategori) || 0) + 1);
+                }));
+                const topKat = [...katSayac.entries()].sort((a, b) => b[1] - a[1])[0];
+                if (topKat && topKat[1] >= 5) {
+                    satirlar.push(`🏷 En çok tükettiğin kategori: ${esc(KATEGORI_ADI[topKat[0]] || topKat[0])} (${topKat[1]} kayıt)`);
+                }
+
+                // Kalori isabet oranı (en az 5 gün)
+                const treffer = hepsi.filter(g => {
+                    const kcal = g.veriler.reduce((t2, x) => t2 + parseFloat(x.cal), 0);
+                    return aktif.kalori > 0 && kcal >= aktif.kalori * 0.9 && kcal <= aktif.kalori * 1.1;
+                }).length;
+                satirlar.push(`🎯 Kalori hedefini ±10% aralığında ${hepsi.length} günden ${treffer} gününde tutturmuşsun`);
+
+                // Protein isabet oranı
+                const proTreffer = hepsi.filter(g => {
+                    const pro = g.veriler.reduce((t2, x) => t2 + parseFloat(x.pro), 0);
+                    return aktif.pro > 0 && pro >= aktif.pro;
+                }).length;
+                satirlar.push(`🥩 Protein hedefini ${hepsi.length} günden ${proTreffer} gününde tutturmuşsun`);
+
+                // Antrenman günleri vs dinlenme günleri kalori farkı (her ikisi için en az 2 gün)
+                const antrenmanGunleri = (aktif.girdi && aktif.girdi.antrenmanGunleri) || [];
+                if (antrenmanGunleri.length > 0) {
+                    const antKal = [], dinKal = [];
+                    hepsi.forEach(g => {
+                        const kcal = g.veriler.reduce((t2, x) => t2 + parseFloat(x.cal), 0);
+                        if (antrenmanGunleri.includes(tarihToDate(g.tarih).getDay())) antKal.push(kcal); else dinKal.push(kcal);
+                    });
+                    if (antKal.length >= 2 && dinKal.length >= 2) {
+                        const fark = Math.round(antKal.reduce((a, b) => a + b, 0) / antKal.length - dinKal.reduce((a, b) => a + b, 0) / dinKal.length);
+                        satirlar.push(`🏋️ Antrenman yaptığın günlerde ortalama ${fark >= 0 ? Math.round(fark) + ' kcal daha fazla' : Math.abs(fark) + ' kcal daha az'} yiyorsun.`);
+                    }
+                }
+
+                // Hafta içi / hafta sonu kalori farkı (her iki grup için en az 2 gün)
+                if (hepsi.length >= 8) {
+                    const haftaIci = [], haftaSonu = [];
+                    hepsi.forEach(g => {
+                        const gun = tarihToDate(g.tarih).getDay();
+                        const kcal = g.veriler.reduce((t2, x) => t2 + parseFloat(x.cal), 0);
+                        if (gun === 0 || gun === 6) haftaSonu.push(kcal); else haftaIci.push(kcal);
+                    });
+                    if (haftaIci.length >= 2 && haftaSonu.length >= 2) {
+                        const fark = Math.round(haftaSonu.reduce((a, b) => a + b, 0) / haftaSonu.length - haftaIci.reduce((a, b) => a + b, 0) / haftaIci.length);
+                        if (Math.abs(fark) >= 100) {
+                            satirlar.push(`📅 Hafta sonu ortalama ${fark >= 0 ? fark + ' kcal daha fazla' : Math.abs(fark) + ' kcal daha az'} tüketiyorsun.`);
+                        }
+                    }
+                }
+
+                // Haftanın günü analizi (en az 2 kayıtlı gün başına)
+                if (hepsi.length >= 10) {
+                    const guneGore = new Map();
+                    hepsi.forEach(g => {
+                        const d = tarihToDate(g.tarih).getDay();
+                        const kcal = g.veriler.reduce((t2, x) => t2 + parseFloat(x.cal), 0);
+                        if (!guneGore.has(d)) guneGore.set(d, []);
+                        guneGore.get(d).push(kcal);
+                    });
+                    const veriliGunler = [...guneGore.entries()].filter(([, v]) => v.length >= 2);
+                    if (veriliGunler.length >= 3) {
+                        const min = veriliGunler.reduce((a, b) => b[1].reduce((x, y) => x + y, 0) / b[1].length < a[1].reduce((x, y) => x + y, 0) / a[1].length ? b : a);
+                        satirlar.push(`📉 Kalorilerin en düşük kaldığı gün genellikle ${gunAdlari[min[0]]} oluyor.`);
+                    }
+                }
+
+                // Su tüketim alışkanlığı — kayıtlı en az 5 gün ve fark belirginse
+                const suluGunler = hepsi.filter(g => g.su !== undefined && g.su !== null);
+                if (suluGunler.length >= 5 && aktif.suHedefMl > 0) {
+                    const hedefeUlasan = suluGunler.filter(g => g.su >= aktif.suHedefMl).length;
+                    if (hedefeUlasan === 0) {
+                        satirlar.push(`💧 Son ${suluGunler.length} kayıtlı günde hiç su hedefine ulaşmamışsın. Su hedefin: ${aktif.suHedefMl} ml.`);
+                    } else if (hedefeUlasan === suluGunler.length) {
+                        satirlar.push(`💧 Harika: son ${suluGunler.length} kayıtlı günün hepsinde su hedefine ulaşmışsın!`);
+                    }
+                }
+
+                // En sık tüketilen öğün (kahvaltı/öğle/akşam/ara) — en az 5 kayıt
+                const ogunSayac = new Map();
+                hepsi.forEach(g => g.veriler.forEach(t => {
+                    if (t.ogun && t.ogun !== 'belirsiz') ogunSayac.set(t.ogun, (ogunSayac.get(t.ogun) || 0) + 1);
+                }));
+                const toplamOgunKaydi = [...ogunSayac.values()].reduce((a, b) => a + b, 0);
+                if (toplamOgunKaydi >= 5) {
+                    const enSikOgun = [...ogunSayac.entries()].sort((a, b) => b[1] - a[1])[0];
+                    satirlar.push(`🍽 En sık kaydettiğin öğün: ${esc(OJUN_ADI[enSikOgun[0]] || enSikOgun[0])} (${enSikOgun[1]} kayıt)`);
+                }
+            }
+
+            alan.innerHTML = satirlar.length > 0
+                ? satirlar.map(s => `<div class="durum-satir"><span>${s}</span></div>`).join('')
+                : '<div class="bos-durum">🧠 Kişisel analizler için en az 5 günlük kayıt gerekli. Kaydetmeye devam et, analizler burada belirecek.</div>';
+        }
+
+        async function gecmisMiktarDuzenle(gunIndex, ogeId) {
             let aktif = aktifProfiliGetir();
             let gun = aktif.gecmis[gunIndex];
             let oge = gun.veriler.find(x => x.id == ogeId);
             if (!oge.besinId) { bildirGoster('Bu eski kayıt miktar olarak düzenlenemiyor, sadece silinebilir.', 'hata'); return; }
             let besin = besinler.find(b => b.id === oge.besinId);
             if (!besin) { bildirGoster('Bu besin kütüphaneden silinmiş, düzenlenemiyor.', 'hata'); return; }
-            let yeniMiktar = prompt(gorunenAd(oge) + ' için yeni miktar (' + besin.ref + ' ' + birimEtiket(besin.birim) + ' = ' + besin.cal + ' kcal):', oge.miktar);
-            if (yeniMiktar === null) return;
-            yeniMiktar = parseFloat(yeniMiktar);
+
+            const yeniMiktarStr = await modalGirdi(
+                'Miktarı Düzenle',
+                gorunenAd(oge) + ' — şu an ' + oge.miktar + ' ' + birimEtiket(besin.birim) + ' (' + oge.cal + ' kcal). Yeni miktar gir (' + besin.ref + ' ' + birimEtiket(besin.birim) + ' = ' + besin.cal + ' kcal):',
+                String(oge.miktar),
+                'Örn: ' + besin.ref
+            );
+            if (yeniMiktarStr === null) return;
+            const yeniMiktar = parseFloat(yeniMiktarStr);
             if (!yeniMiktar || yeniMiktar <= 0) { bildirGoster('Geçersiz miktar', 'hata'); return; }
+
+            const eskiOge = { ...oge };
             let carpan = yeniMiktar / besin.ref;
             oge.miktar = yeniMiktar;
             oge.cal = Math.round(besin.cal * carpan);
@@ -1659,7 +2406,11 @@
             oge.karb = (besin.karb * carpan).toFixed(1);
             localStorage.setItem('df_profiller', JSON.stringify(profiller));
             gecmisListele();
-            bildirGoster('Kayıt güncellendi');
+            bildirGoster('Kayıt güncellendi', null, () => {
+                Object.assign(oge, eskiOge);
+                localStorage.setItem('df_profiller', JSON.stringify(profiller));
+                gecmisListele();
+            });
         }
 
         function gecmisOgeSil(gunIndex, ogeId) {
@@ -1707,6 +2458,8 @@
             liste.innerHTML = '';
             trendGuncelle();
             analitikGuncelle();
+            haftalikKarsilastirmaGuncelle();
+            icgorulerGuncelle();
 
             if (aktif.gecmis.length === 0) {
                 liste.innerHTML = '<div class="bos-durum" style="margin-top:20px;">🗂 Arşiv boş.</div>';
@@ -1716,7 +2469,7 @@
             let tersArsiv = [...aktif.gecmis].reverse();
             tersArsiv.forEach(gun => {
                 let gunIndexGercek = aktif.gecmis.findIndex(g => g.tarih === gun.tarih);
-                liste.innerHTML += `<span class="gecmis-tarih" onclick="gunRaporuGoster('${esc(gun.tarih)}')">${esc(gun.tarih)}<button onclick="event.stopPropagation(); gecmisGunuTekrarEt(${gunIndexGercek})">🔄 Tekrar Ekle</button></span>`;
+                liste.innerHTML += `<span class="gecmis-tarih" onclick="gunDetayAc('${esc(gun.tarih)}')">${esc(gun.tarih)}<button onclick="event.stopPropagation(); gecmisGunuTekrarEt(${gunIndexGercek})">🔄 Tekrar Ekle</button></span>`;
                 let topCal = 0;
                 gun.veriler.forEach(t => {
                     topCal += parseFloat(t.cal);
@@ -1920,36 +2673,349 @@
             bildirGoster('⬇ Veriler dışa aktarıldı');
         }
 
+        // İÇE AKTARMA DOĞRULAMA — bozuk/eksik JSON asla localStorage'a yazılmaz.
+        // Önce validate, sonra güvenlik yedeği, sonra import. Başarısızsa mevcut veri korunur.
+        function veriIceAktarDogrula(veri) {
+            const hatalar = [];
+            if (veri === null || typeof veri !== 'object' || Array.isArray(veri)) {
+                return ['Dosya içeriği beklenen yapıda değil (nesne bekleniyor).'];
+            }
+            const arrayAlanlari = ['df_besinler', 'df_profiller', 'df_favoriler', 'df_takviyeler', 'df_sablonlar'];
+            for (const alan of arrayAlanlari) {
+                if (veri[alan] !== undefined && !Array.isArray(veri[alan])) {
+                    hatalar.push(alan + ' bir dizi (array) olmalı.');
+                }
+            }
+            if (hatalar.length > 0) return hatalar;
+
+            // besin nesneleri: ad + kategori + sayısal değerler
+            (veri.df_besinler || []).forEach((b, i) => {
+                if (!b || typeof b !== 'object') { hatalar.push('df_besinler[' + i + '] nesne değil.'); return; }
+                if (!b.ad || typeof b.ad !== 'string') hatalar.push('df_besinler[' + i + '].ad eksik veya geçersiz.');
+                if (b.id === undefined || b.id === null) hatalar.push('df_besinler[' + i + '].id eksik.');
+                ['cal', 'pro', 'yag', 'karb', 'ref'].forEach(alan => {
+                    if (b[alan] !== undefined && (typeof b[alan] !== 'number' || b[alan] < 0)) {
+                        hatalar.push('df_besinler[' + i + '].' + alan + ' geçersiz (negatif veya sayı değil).');
+                    }
+                });
+            });
+            // profil nesneleri: ad + girdi
+            (veri.df_profiller || []).forEach((p, i) => {
+                if (!p || typeof p !== 'object') { hatalar.push('df_profiller[' + i + '] nesne değil.'); return; }
+                if (!p.ad || typeof p.ad !== 'string') hatalar.push('df_profiller[' + i + '].ad eksik veya geçersiz.');
+                if (p.id === undefined || p.id === null) hatalar.push('df_profiller[' + i + '].id eksik.');
+                if (p.girdi !== undefined && (typeof p.girdi !== 'object' || p.girdi === null)) {
+                    hatalar.push('df_profiller[' + i + '].girdi geçersiz.');
+                }
+            });
+            // favoriler: id dizisi
+            (veri.df_favoriler || []).forEach((f, i) => {
+                if (f === null || f === undefined) hatalar.push('df_favoriler[' + i + '] boş.');
+            });
+            return hatalar;
+        }
+
         function veriIceAktar(event) {
             let dosya = event.target.files[0];
             if (!dosya) return;
             let okuyucu = new FileReader();
-            okuyucu.onload = function (e) {
+            okuyucu.onload = async function (e) {
+                let veri;
                 try {
-                    let veri = JSON.parse(e.target.result);
-                    if (!confirm('Bu içe aktarma, tarayıcıdaki mevcut verilerin üzerine yazacak. Devam etmek istiyor musun?')) return;
+                    veri = JSON.parse(e.target.result);
+                } catch (err) {
+                    await modalUyari('İçe Aktarma Başarısız', 'Dosya geçerli bir JSON değil. Mevcut verilerine hiçbir şey olmadı.');
+                    return;
+                }
+                const hatalar = veriIceAktarDogrula(veri);
+                if (hatalar.length > 0) {
+                    await modalUyari('İçe Aktarma Başarısız', 'Dosyada ' + hatalar.length + ' sorun bulundu (ilk sorun: ' + hatalar[0] + '). Mevcut verilerine hiçbir şey yazılmadı.');
+                    return;
+                }
+                const onay = await modalOnay(
+                    'Verileri İçe Aktar',
+                    'Bu içe aktarma, tarayıcıdaki mevcut verilerin üzerine yazacak. İşlem öncesi otomatik güvenlik yedeği alınacak. Devam edilsin mi?',
+                    true
+                );
+                if (!onay) return;
+
+                // Güvenlik yedeği — mevcut tüm veriyi df_son_yedek anahtarına kaydet
+                const yedek = {};
+                ['df_besinler', 'df_profiller', 'df_aktif_profil_id', 'df_favoriler', 'df_takviyeler', 'df_sablonlar'].forEach(k => {
+                    const v = localStorage.getItem(k);
+                    if (v !== null) yedek[k] = v;
+                });
+                localStorage.setItem('df_son_yedek', JSON.stringify(yedek));
+
+                try {
                     if (veri.df_besinler) localStorage.setItem('df_besinler', JSON.stringify(veri.df_besinler));
                     if (veri.df_profiller) localStorage.setItem('df_profiller', JSON.stringify(veri.df_profiller));
                     if (veri.df_aktif_profil_id) localStorage.setItem('df_aktif_profil_id', veri.df_aktif_profil_id);
                     if (veri.df_favoriler) localStorage.setItem('df_favoriler', JSON.stringify(veri.df_favoriler));
                     if (veri.df_takviyeler) localStorage.setItem('df_takviyeler', JSON.stringify(veri.df_takviyeler));
                     if (veri.df_sablonlar) localStorage.setItem('df_sablonlar', JSON.stringify(veri.df_sablonlar));
-                    bildirGoster('✓ Veriler içe aktarıldı, sayfa yenileniyor...');
-                    setTimeout(() => location.reload(), 900);
                 } catch (err) {
-                    bildirGoster('Geçersiz dosya, içe aktarılamadı', 'hata');
+                    // import sırasında hata — yedekten geri yükle
+                    Object.entries(yedek).forEach(([k, v]) => localStorage.setItem(k, v));
+                    await modalUyari('İçe Aktarma Başarısız', 'Yazma sırasında hata oluştu, mevcut verileriniz yedekten geri yüklendi.');
+                    return;
                 }
+                bildirGoster('✓ Veriler içe aktarıldı, sayfa yenileniyor...');
+                setTimeout(() => location.reload(), 900);
             };
             okuyucu.readAsText(dosya);
         }
 
-        // TÜM VERİLERİ SİL — çift onaylı, geri alınamaz tehlikeli işlem
-        function veriSifirlaBaslat() {
-            if (!confirm('Bu işlem TÜM profilleri, besin kütüphaneni, geçmişini ve ayarlarını kalıcı olarak silecek. Bu işlem geri alınamaz. Devam etmek istiyor musun?')) return;
-            if (!confirm('Son kez soruyoruz: verilerini dışa aktardın mı? Onaylarsan her şey silinecek ve sıfırdan başlayacaksın.')) return;
+        // TÜM VERİLERİ SİL — Nutrio modal çift onaylı, geri alınamaz tehlikeli işlem
+        async function veriSifirlaBaslat() {
+            const onay1 = await modalOnay(
+                'Tüm Verileri Sil',
+                'Bu işlem TÜM profilleri, besin kütüphanenizi, geçmişinizi ve ayarlarınızı kalıcı olarak silecek. Bu işlem geri alınamaz. Devam etmek istiyor musunuz?',
+                true
+            );
+            if (!onay1) return;
+            const onay2 = await modalOnay(
+                'Son Onay',
+                'Son kez soruyoruz: verilerinizi dışa aktardınız mı? Onaylarsanız her şey silinecek ve sıfırdan başlayacaksınız.',
+                true
+            );
+            if (!onay2) return;
             ['df_besinler', 'df_profiller', 'df_aktif_profil_id', 'df_favoriler', 'df_takviyeler', 'df_sablonlar'].forEach(k => localStorage.removeItem(k));
             bildirGoster('🗑 Tüm veriler silindi, sayfa yenileniyor...');
             setTimeout(() => location.reload(), 900);
         }
 
+        // PWA KURULUM BİLGİSİ — tarayıcı "beforeinstallprompt" tetiklediyse yükleme butonu göster
+        let pwaBekleyenYukleme = null;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            pwaBekleyenYukleme = e;
+            pwaKurulumBilgiGuncelle();
+        });
+        window.addEventListener('appinstalled', () => {
+            pwaBekleyenYukleme = null;
+            pwaKurulumBilgiGuncelle();
+        });
+
+        function pwaKurulumBilgiGuncelle() {
+            const bilgi = document.getElementById('pwa-kurulum-bilgi');
+            if (!bilgi) return;
+            const baglantiButonu = document.getElementById('pwa-kur-btn');
+            const protocol = location.protocol;
+            let durum;
+            if (protocol === 'file:') {
+                durum = 'Uygulama şu an dosya (file://) üzerinden açılmış. Yüklenebilir PWA özellikleri (offline kullanım, ana ekrana ekleme) yalnızca HTTPS veya localhost üzerinden çalışır.';
+                if (baglantiButonu) baglantiButonu.classList.add('gizli');
+            } else if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+                durum = 'Nutrio uygulama olarak yüklü. 🎉';
+                if (baglantiButonu) baglantiButonu.classList.add('gizli');
+            } else if (pwaBekleyenYukleme) {
+                durum = 'Nutrio\'yu cihazına uygulama olarak yükleyebilirsin: ana ekrana eklenir, tam ekran açılır ve çevrimdışı çalışır.';
+                if (baglantiButonu) baglantiButonu.classList.remove('gizli');
+            } else {
+                durum = 'Yükleme butonu bu tarayıcıda henüz aktif olmadı. iOS Safari: Paylaş → "Ana Ekrana Ekle". Chrome/Edge (mobil): menü → "Uygulamayı yükle". Masaüstü: adres çubuğundaki yükleme simgesi.';
+                if (baglantiButonu) baglantiButonu.classList.add('gizli');
+            }
+            bilgi.innerText = durum;
+        }
+
+        async function pwaKur() {
+            if (!pwaBekleyenYukleme) return;
+            pwaBekleyenYukleme.prompt();
+            const sonuc = await pwaBekleyenYukleme.userChoice;
+            if (sonuc && sonuc.outcome === 'accepted') bildirGoster('Nutrio yüklendi 🎉');
+            pwaBekleyenYukleme = null;
+            pwaKurulumBilgiGuncelle();
+        }
+
+        // GÜN DETAY — herhangi bir tarihin tam görünümü (geçmiş düzenlenebilir, bugün canlı)
+        let gunDetayAktifTarih = null;
+
+        function gunVerisiGetir(aktif, tarih) {
+            // GÜN = tarih: bugün canlı veriden, geçmiş arşivden okunur — aynı veri modeli
+            if (tarih === bugununTarihi) {
+                return { tarih, veriler: aktif.gunluk, su: aktif.su.miktar, bugunMu: true };
+            }
+            const kayit = aktif.gecmis.find(g => g.tarih === tarih);
+            return kayit ? { ...kayit, bugunMu: false } : { tarih, veriler: [], su: null, bugunMu: false };
+        }
+
+        function gunDetayAc(tarih) {
+            gunDetayAktifTarih = tarih;
+            sayfaGoster('gun-detay-ekrani');
+        }
+
+        function gunDetayGezin(gunFarki) {
+            if (!gunDetayAktifTarih) gunDetayAktifTarih = bugununTarihi;
+            gunDetayAc(tarihAyarla(gunDetayAktifTarih, gunFarki));
+        }
+
+        function gunDetayTarihSec(deger) {
+            if (!deger) return;
+            // <input type="date"> ISO (YYYY-MM-DD) verir — tr-TR formatına çevir
+            const [y, a, g] = deger.split('-').map(Number);
+            gunDetayAc(g + '.' + a + '.' + y);
+        }
+
+        function gunDetayGuncelle() {
+            const aktif = aktifProfiliGetir();
+            const tarih = gunDetayAktifTarih || bugununTarihi;
+            gunDetayAktifTarih = tarih;
+            const gunVerisi = gunVerisiGetir(aktif, tarih);
+            const bugunMu = gunVerisi.bugunMu;
+
+            document.getElementById('gun-detay-baslik').innerText = formatTarihUzun(tarih);
+            const tarihSec = document.getElementById('gun-detay-tarih-sec');
+            if (tarihSec) {
+                const [g, a, y] = tarih.split('.').map(Number);
+                tarihSec.value = y + '-' + String(a).padStart(2, '0') + '-' + String(g).padStart(2, '0');
+            }
+            // Sonraki gün butonu geleceğe geçmesin
+            const sonrakiGunVar = tarihFarkiGun(tarih, bugununTarihi) < 0;
+            const butonlar = document.querySelectorAll('#gun-detay-ekrani .buton-grubu .btn-kucuk');
+            if (butonlar.length === 3) butonlar[2].disabled = !sonrakiGunVar;
+
+            // Hedefler: bugün dinamik, geçmiş profil baz hedefleri
+            const hedefler = bugunMu ? bugunkuHedefleriHesapla(aktif) : { kalori: aktif.kalori, pro: aktif.pro, yag: aktif.yag, karb: aktif.karb };
+
+            let tCal = 0, tPro = 0, tYag = 0, tKarb = 0;
+            gunVerisi.veriler.forEach(t => { tCal += parseFloat(t.cal); tPro += parseFloat(t.pro); tYag += parseFloat(t.yag); tKarb += parseFloat(t.karb); });
+
+            document.getElementById('gd-kalori').innerText = Math.round(tCal);
+            document.getElementById('gd-protein').innerText = Math.round(tPro);
+            document.getElementById('gd-yag').innerText = Math.round(tYag);
+            document.getElementById('gd-karb').innerText = Math.round(tKarb);
+            document.getElementById('gd-hedef-kalori').innerText = 'Hedef: ' + hedefler.kalori;
+            document.getElementById('gd-hedef-protein').innerText = 'Hedef: ' + hedefler.pro + 'g';
+            document.getElementById('gd-hedef-yag').innerText = 'Hedef: ' + hedefler.yag + 'g';
+            document.getElementById('gd-hedef-karb').innerText = 'Hedef: ' + hedefler.karb + 'g';
+            const kaloriYuzde = hedefler.kalori > 0 ? Math.min(100, Math.round((tCal / hedefler.kalori) * 100)) : 0;
+            document.getElementById('gd-ilerleme-kalori').style.width = kaloriYuzde + '%';
+            document.getElementById('gd-uyum').innerText = hedefler.kalori > 0 ? ('Hedefe uyum: %' + Math.round((tCal / hedefler.kalori) * 100)) : '';
+
+            // Tüketilen besinler — öğün gruplu, düzenlenebilir (bugün ve geçmiş aynı bileşen)
+            const listeAlan = document.getElementById('gun-detay-ogun-listesi');
+            listeAlan.innerHTML = ogunGrupluListeHtml(gunVerisi.veriler, t => `
+                <div class="liste-elemani" style="padding:11px 13px;">
+                    <div><strong style="font-size:14px;">${esc(gorunenAd(t))}</strong><span class="liste-detay">${t.miktar} ${esc(t.birim ? birimEtiket(t.birim) : 'birim')} · ${esc(ogunEtiketi(t))}</span></div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <strong style="color:var(--vurgu-renk);">${t.cal} kcal</strong>
+                        <button class="btn-duzenle" style="padding:6px 9px;" onclick="gunDetayOgeDuzenle('${t.id}')">✎</button>
+                        <button class="btn-tehlike" style="padding:6px 9px; border-radius:10px;" onclick="gunDetayOgeSil('${t.id}')">✖</button>
+                    </div>
+                </div>`);
+            // Geçmiş günse "besin ekle" bu güne yazar; bugünse tüketim ekranı bugüne yazar
+            document.getElementById('gd-ekle-btn').onclick = bugunMu
+                ? () => tuketimEkranAc()
+                : () => tuketimEkranAc(tarih);
+
+            // Su
+            const suDeger = gunVerisi.su;
+            const suHedef = aktif.suHedefMl || 2500;
+            document.getElementById('gd-su').innerText = (suDeger !== null && suDeger !== undefined) ? suDeger + ' ml' : 'kayıt yok';
+            document.getElementById('gd-su-hedef').innerText = 'Hedef: ' + suHedef + ' ml';
+            document.getElementById('gd-su-bar').style.width = (suDeger ? Math.min(100, Math.round((suDeger / suHedef) * 100)) : 0) + '%';
+
+            // Egzersiz & adım
+            const aktivite = bugunMu ? bugunAktiviteGetir(aktif) : ((aktif.gunlukAktivite || {})[tarih] || null);
+            const egzListe = (aktivite && aktivite.egzersizler) || [];
+            const egzAlan = document.getElementById('gun-detay-egz-liste');
+            if (egzListe.length === 0) {
+                egzAlan.innerHTML = '<div class="hedef-yazi">Bu gün için egzersiz kaydı yok.</div>';
+            } else {
+                egzAlan.innerHTML = egzListe.map(e2 => {
+                    let kcal = Math.round(egzersizKcalHesapla(e2.tip, e2.sure, aktif.girdi.kilo));
+                    let silBtn = bugunMu ? '<span class="durum-ikon" style="color:#ff8a8a;" onclick="bugunEgzersizSil(\'' + e2.id + '\')">✖</span>' : '';
+                    return '<div class="mini-satir"><span>' + esc(egzersizAdlari[e2.tip] || e2.tip) + ' — ' + e2.sure + ' dk</span><span>' + kcal + ' kcal ' + silBtn + '</span></div>';
+                }).join('');
+            }
+            const adim = aktivite && aktivite.adim ? aktivite.adim : null;
+            document.getElementById('gd-egz-ozet').innerText = (adim ? Math.round(adim) + ' adım' : 'adım kaydı yok') + (egzListe.length ? ' · ' + egzListe.length + ' egzersiz' : '');
+
+            // Takviyeler (alınan / alınmayan / planlı)
+            const planliTakviyeler = takviyeler.filter(t => takviyeBugunDuzenliMi(t, tarih));
+            const tkGunKayit = (aktif.takviyeGecmisi && aktif.takviyeGecmisi[tarih]) || {};
+            const tkAlan = document.getElementById('gun-detay-takviye-liste');
+            const tkOranEl = document.getElementById('gd-takviye-oran');
+            if (planliTakviyeler.length === 0) {
+                tkAlan.innerHTML = '<div class="hedef-yazi">Bu gün için planlı takviye yok.</div>';
+                tkOranEl.innerText = '';
+            } else {
+                const alinan = planliTakviyeler.filter(t => tkGunKayit[t.id]).length;
+                tkOranEl.innerText = alinan + ' / ' + planliTakviyeler.length + ' alındı';
+                tkAlan.innerHTML = planliTakviyeler.map(t => {
+                    let yapildi = !!tkGunKayit[t.id];
+                    let tikla = bugunMu ? ' onclick="takviyeBugunToggle(\'' + t.id + '\')"' : '';
+                    return '<div class="mini-satir"><span>' + esc(t.tur) + ' — ' + esc(t.doz) + '</span><span class="durum-ikon ' + (yapildi ? 'yapildi' : '') + '"' + tikla + '>' + (yapildi ? '✓' : '') + '</span></div>';
+                }).join('');
+            }
+
+            // Kilo geçmişi — o güne ait kayıt varsa göster
+            const kiloKaydi = (aktif.kiloGecmisi || []).find(k => k.tarih === tarih);
+            document.getElementById('gd-kilo').innerText = kiloKaydi ? kiloKaydi.kilo.toFixed(1) + ' kg' : 'kayıt yok';
+        }
+
+        // Gün detay ekranındaki kaydı düzenle/sil — geçmiş günse arşive, bugünse günlüğe yazar
+        function gunDetayKayitBul(tarih, ogeId) {
+            const aktif = aktifProfiliGetir();
+            if (tarih === bugununTarihi) return { kayitlar: aktif.gunluk, bugunMu: true };
+            const gun = aktif.gecmis.find(g => g.tarih === tarih);
+            return { kayitlar: gun ? gun.veriler : [], bugunMu: false };
+        }
+
+        async function gunDetayOgeDuzenle(ogeId) {
+            const tarih = gunDetayAktifTarih || bugununTarihi;
+            const { kayitlar } = gunDetayKayitBul(tarih, ogeId);
+            const oge = kayitlar.find(x => x.id == ogeId);
+            if (!oge) return;
+            if (oge.besinId) {
+                const besin = besinler.find(b => b.id === oge.besinId);
+                if (!besin) { bildirGoster('Bu besin kütüphaneden silinmiş, düzenlenemiyor.', 'hata'); return; }
+                const yeniMiktarStr = await modalGirdi('Miktarı Düzenle', gorunenAd(oge) + ' (' + formatTarihKisa(tarih) + ') — yeni miktar:', String(oge.miktar));
+                if (yeniMiktarStr === null) return;
+                const yeniMiktar = parseFloat(yeniMiktarStr);
+                if (!yeniMiktar || yeniMiktar <= 0) { bildirGoster('Geçersiz miktar', 'hata'); return; }
+                const eskiOge = { ...oge };
+                const carpan = yeniMiktar / besin.ref;
+                oge.miktar = yeniMiktar;
+                oge.cal = Math.round(besin.cal * carpan);
+                oge.pro = (besin.pro * carpan).toFixed(1);
+                oge.yag = (besin.yag * carpan).toFixed(1);
+                oge.karb = (besin.karb * carpan).toFixed(1);
+                localStorage.setItem('df_profiller', JSON.stringify(profiller));
+                gunDetayGuncelle();
+                bildirGoster('Kayıt güncellendi', null, () => {
+                    Object.assign(oge, eskiOge);
+                    localStorage.setItem('df_profiller', JSON.stringify(profiller));
+                    gunDetayGuncelle();
+                });
+            }
+        }
+
+        function gunDetayOgeSil(ogeId) {
+            const tarih = gunDetayAktifTarih || bugununTarihi;
+            const aktif = aktifProfiliGetir();
+            const { kayitlar, bugunMu } = gunDetayKayitBul(tarih, ogeId);
+            const eskiIndex = kayitlar.findIndex(x => x.id == ogeId);
+            const silinen = kayitlar[eskiIndex];
+            if (!silinen) return;
+            kayitlar.splice(eskiIndex, 1);
+            if (!bugunMu) {
+                const gun = aktif.gecmis.find(g => g.tarih === tarih);
+                if (gun && gun.veriler.length === 0) aktif.gecmis = aktif.gecmis.filter(g => g.tarih !== tarih);
+            }
+            localStorage.setItem('df_profiller', JSON.stringify(profiller));
+            gunDetayGuncelle();
+            bildirGoster('Kayıt silindi', null, () => {
+                if (!bugunMu) {
+                    let gun = aktif.gecmis.find(g => g.tarih === tarih);
+                    if (!gun) { gun = { tarih, veriler: [], su: null }; aktif.gecmis.push(gun); }
+                }
+                kayitlar.splice(Math.min(eskiIndex, kayitlar.length), 0, silinen);
+                localStorage.setItem('df_profiller', JSON.stringify(profiller));
+                gunDetayGuncelle();
+            });
+        }
+
         baslangicKontrolu();
+    
