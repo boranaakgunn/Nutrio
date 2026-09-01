@@ -4,11 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Nutrio — Günlük Beslenme Takibi</title>
+    <meta name="theme-color" content="#0b0e0c">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" sizes="180x180" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-
 </head>
 <body>
     <div id="sayfa-govde">
@@ -75,6 +80,10 @@
                 <option value="75">75 dakika</option>
                 <option value="90">90+ dakika</option>
             </select>
+
+            <label>Antrenman Günlerin (opsiyonel)</label>
+            <div class="buton-grubu" id="pr-antrenman-gun-secim" style="flex-wrap:wrap;"></div>
+            <p class="form-not" style="margin-top:2px;">Seçersen ana ekranda o gün "🏋️ Antrenman Günü", diğer günlerde "🛋️ Dinlenme Günü" rozeti görünür ve kalori hedefin buna göre otomatik ayarlanır.</p>
         </div>
 
         <div class="profil-bolum-basligi">Hedef</div>
@@ -88,6 +97,7 @@
 
         <button id="profil-kaydet-btn" onclick="profilKaydet()">Profili Yarat ve Başla</button>
         <button class="btn-ikincil gizli" id="iptal-profil-btn" onclick="sayfaGoster('ana-ekran')">İptal</button>
+        <button class="btn-tehlike gizli" id="profil-sil-btn" onclick="profilSil()" style="width:100%; border-radius:50px; margin-top:10px;">🗑 Bu Profili Sil</button>
     </div>
 
     <!-- 1. ANA EKRAN (DASHBOARD) -->
@@ -102,6 +112,7 @@
         </div>
 
         <h1 id="ana-baslik" style="font-size: 24px; text-align: left; margin-left: 5px;">Bugünün Yakıtı</h1>
+        <div id="gun-tipi-rozet-alani" style="margin-left:5px;"></div>
 
         <div class="kart">
             <div class="skor-paneli">
@@ -140,6 +151,11 @@
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span class="hedef-yazi" style="margin-top:0;">🏋️ Bugünkü Egzersiz</span>
                     <span class="hedef-yazi" style="margin-top:0; cursor:pointer; text-decoration:underline;" onclick="bugunEgzersizAlaniAcKapa()">+ Egzersiz Ekle</span>
+                </div>
+                <div class="egz-durum-grup" id="egz-durum-grup">
+                    <button type="button" class="egz-durum-btn" onclick="bugunEgzersizDurumAyarla('yapildi')">✅ Yaptım</button>
+                    <button type="button" class="egz-durum-btn" onclick="bugunEgzersizDurumAyarla('planli_degil')">⏭️ Planlı değildi</button>
+                    <button type="button" class="egz-durum-btn" onclick="bugunEgzersizDurumAyarla('yapmadi')">❌ Yapmadım</button>
                 </div>
                 <div id="bugun-egzersiz-liste" style="margin-top:6px;"></div>
                 <div class="buton-grubu gizli" id="bugun-egzersiz-form" style="margin-top:10px;">
@@ -214,7 +230,7 @@
         </div>
         <button class="btn-ikincil" style="margin-top:8px;" onclick="eksikOlaniGoster()">🔎 Bugün Ne Eksik?</button>
 
-        <h2 style="text-align: left; margin-top: 30px; margin-left: 5px; font-size: 19px;">Tüketim Listesi</h2>
+        <h2 style="text-align: left; margin-top: 30px; margin-left: 5px; font-size: 19px;">Bugünün Öğünleri</h2>
         <p class="grafik-ipucu" style="text-align:left; margin:-10px 0 10px 5px;">İpucu: bir kaydı sola kaydırarak sil, sağa kaydırarak düzenle.</p>
         <div id="yenenler-listesi"></div>
     </div>
@@ -236,15 +252,7 @@
         <label>Marka (opsiyonel)</label><input type="text" id="b-marka" placeholder="Örn: Barilla">
         <label>Besin Adı</label><input type="text" id="b-ad" placeholder="Örn: Penne Rigate">
         <label>Kategori</label>
-        <select id="b-kategori">
-            <option value="et">Et / Tavuk / Balık</option>
-            <option value="sut">Süt & Yumurta Ürünleri</option>
-            <option value="karb">Karbonhidrat</option>
-            <option value="sebze">Sebze</option>
-            <option value="meyve">Meyve</option>
-            <option value="yag">Yağlar</option>
-            <option value="diger">Diğer</option>
-        </select>
+        <select id="b-kategori"></select>
         <label>Birim</label>
         <select id="b-birim" onchange="birimDegistiFormda()">
             <option value="g">Gram (g)</option>
@@ -272,6 +280,8 @@
         <label>Miktar</label>
         <div class="porsiyon-grid" id="t-porsiyon-grid"></div>
         <input type="number" id="t-miktar" placeholder="Kaç birim yedin?">
+        <label>Öğün</label>
+        <select id="t-ogun"></select>
         <button id="tuketim-kaydet-btn" onclick="tuketimKaydet()">Bugüne Ekle</button>
         <button class="btn-tehlike" onclick="sayfaGoster('ana-ekran')" style="width:100%; border-radius:50px; margin-top:10px;">İptal</button>
     </div>
@@ -286,9 +296,15 @@
         </div>
 
         <div class="kart">
-            <h2 style="text-align:left; font-size:16px;">📈 Kalori Trend (Son 14 Gün)</h2>
+            <h2 style="text-align:left; font-size:16px;">📈 Trend (Son 14 Gün)</h2>
+            <div class="kategori-sekmeler" id="trend-makro-sekmeler"></div>
             <div id="trend-grafik-alan"></div>
             <div class="grafik-ipucu">Bir noktaya dokun, o günün detayını gör</div>
+        </div>
+
+        <div class="kart">
+            <h2 style="text-align:left; font-size:16px;">🗓 Haftalık Karşılaştırma</h2>
+            <div id="haftalik-karsilastirma-alan"></div>
         </div>
 
         <p id="gecmis-isim-bilgi" style="text-align:center; color:var(--yazi-pasif); font-size:14px;"></p>
@@ -412,7 +428,7 @@
     </div>
 
     <div id="sablon-form-ekrani" class="gizli kart">
-        <h2>Şablon Oluştur</h2>
+        <h2 id="sablon-form-baslik">Şablon Oluştur</h2>
         <label>Şablon Adı</label>
         <input type="text" id="sb-ad" placeholder="Örn: Kahvaltım">
         <label>Kategori</label>
@@ -436,34 +452,151 @@
         <h2 style="font-size:15px; margin-top:16px;">Şablon İçeriği</h2>
         <div id="sb-icerik-listesi"></div>
         <p id="sb-toplam" class="form-not"></p>
-        <button onclick="sablonKaydet()">Şablonu Kaydet</button>
+        <button id="sablon-kaydet-btn" onclick="sablonKaydet()">Şablonu Kaydet</button>
         <button class="btn-tehlike" onclick="sayfaGoster('sablon-ekrani')" style="width:100%; border-radius:50px; margin-top:10px;">İptal</button>
     </div>
 
-    <!-- 9. DAHA FAZLA -->
+    <!-- 9. DAHA FAZLA (araç merkezi) -->
     <div id="daha-fazla-ekrani" class="gizli">
         <h1>Daha Fazla</h1>
-        <div class="buton-grubu">
-            <button class="btn-ikincil" onclick="profilDuzenleAc()">⚙ Profil</button>
-            <button class="btn-ikincil" onclick="yeniProfilFormu()">+ Yeni Kişi</button>
-        </div>
+        <p style="color:var(--yazi-pasif); font-size:14px; margin-top:-8px;">Araçlar, kayıtlar ve ayarlar.</p>
+        <button onclick="sayfaGoster('ayarlar-ekrani')" style="margin-top:14px;">⚙ Ayarlar</button>
         <div style="margin-top:14px;">
             <button class="btn-ikincil" onclick="sayfaGoster('kutuphane-ekrani')">🍎 Besin Kütüphanesi</button>
             <button class="btn-ikincil" onclick="sayfaGoster('sablon-ekrani')" style="margin-top:8px;">📋 Öğün Şablonları</button>
             <button class="btn-ikincil" onclick="sayfaGoster('takviye-ekrani')" style="margin-top:8px;">💊 Takviyeler</button>
             <button class="btn-ikincil" onclick="sayfaGoster('kilo-ekrani')" style="margin-top:8px;">⚖ Kilo Takibi</button>
         </div>
-        <div class="kart" style="margin-top:18px;">
-            <h2 style="text-align:left; font-size:15px;">Verilerini Yedekle</h2>
+    </div>
+
+    <!-- 10. AYARLAR — tema, profil, veri yönetimi, uygulama bilgisi -->
+    <div id="ayarlar-ekrani" class="gizli">
+        <h1>⚙ Ayarlar</h1>
+
+        <div class="kart">
+            <h2 style="text-align:left; font-size:15px;">🎨 Tema</h2>
+            <p class="form-not" style="margin-top:0;">Uygulamanın genel görünümünü değiştirir: arka plan, kartlar, yazı renkleri ve vurgu. Seçim tarayıcında saklanır.</p>
+            <div class="tema-secim-liste" id="tema-secici-ayarlar"></div>
+        </div>
+
+        <div class="kart">
+            <h2 style="text-align:left; font-size:15px;">👤 Profiller</h2>
+            <div class="buton-grubu">
+                <button class="btn-ikincil" onclick="profilDuzenleAc()">Profili Düzenle</button>
+                <button class="btn-ikincil" onclick="yeniProfilFormu()">+ Yeni Kişi</button>
+            </div>
+            <p class="form-not" style="margin-top:10px;">Her profilin kendi günlüğü, geçmişi, kilo ve takviye kayıtları tutulur.</p>
+        </div>
+
+        <div class="kart">
+            <h2 style="text-align:left; font-size:15px;">💾 Veri Yedekleme</h2>
             <p class="form-not" style="margin-top:0;">Verilerin şu an bu tarayıcıda saklanıyor. Cihaz değişirse veya tarayıcı verisi silinirse kaybolabilir — düzenli olarak dışa aktarmanı öneririz.</p>
             <button onclick="veriDisaAktar()">⬇ Verileri Dışa Aktar (JSON)</button>
             <button class="btn-ikincil" onclick="document.getElementById('veri-ice-aktar-input').click()">⬆ Verileri İçe Aktar (JSON)</button>
             <input type="file" id="veri-ice-aktar-input" accept="application/json" class="gizli" onchange="veriIceAktar(event)">
         </div>
-        <div class="kart" style="margin-top:14px; border-color: rgba(255,93,93,.25);">
-            <h2 style="text-align:left; font-size:15px; color:#ff8a8a;">Tehlikeli Bölge</h2>
+
+        <div class="kart" style="border-color: rgba(255,93,93,.25);">
+            <h2 style="text-align:left; font-size:15px; color:#ff8a8a;">🗑 Veri Sıfırlama</h2>
             <p class="form-not" style="margin-top:0;">Bu işlem tüm profilleri, besin kütüphaneni, geçmişini ve ayarlarını kalıcı olarak siler. Geri alınamaz — önce dışa aktarmanı öneririz.</p>
             <button class="btn-tehlike" style="width:100%;" onclick="veriSifirlaBaslat()">🗑 Tüm Verileri Sil</button>
+        </div>
+
+        <div class="kart">
+            <h2 style="text-align:left; font-size:15px;">📲 Uygulama Olarak Yükle (PWA)</h2>
+            <p class="form-not" id="pwa-kurulum-bilgi" style="margin-top:0;"></p>
+            <button class="btn-ikincil gizli" id="pwa-kur-btn" onclick="pwaKur()">📲 Nutrio'yu Yükle</button>
+        </div>
+
+        <div class="kart">
+            <h2 style="text-align:left; font-size:15px;">ℹ Uygulama Bilgisi</h2>
+            <div class="mini-satir"><span>Uygulama</span><span>Nutrio 4.0</span></div>
+            <div class="mini-satir"><span>Tür</span><span>Çevrimdışı çalışabilen PWA</span></div>
+            <div class="mini-satir"><span>Veri saklama</span><span>Tarayıcı (localStorage)</span></div>
+            <div class="mini-satir"><span>Sunucu bağlantısı</span><span>Yok — veriler cihazında</span></div>
+            <p class="form-not" style="margin-top:12px;">Nutrio tamamen tarayıcında çalışır; besin kütüphanen, kayıtların ve ayarların hiçbiri hiçbir sunucuya gönderilmez.</p>
+        </div>
+
+        <button class="btn-ikincil" onclick="sayfaGoster('daha-fazla-ekrani')">← Daha Fazla'ya Dön</button>
+    </div>
+
+    <!-- 5. ANALİZ — gerçek geçmiş verisinden kişisel örüntüler -->
+    <div id="analiz-ekrani" class="gizli">
+        <h1>Analiz</h1>
+        <p class="form-not" style="text-align:left; margin-top:-8px;">Nutrio kayıtlarını analiz eder ve alışkanlıkların hakkında anlaşılır örüntüler gösterir. Yeterli veri yoksa tahmin üretilmez.</p>
+
+        <div class="kart">
+            <h2 style="text-align:left; font-size:16px;">📅 Genel Özet</h2>
+            <div id="analiz-ozet-alan"></div>
+        </div>
+
+        <div class="kart">
+            <h2 style="text-align:left; font-size:16px;">🧠 Nutrio Seni Tanıyor</h2>
+            <div id="icgoru-alan"></div>
+        </div>
+    </div>
+
+    <!-- 5b. GÜN DETAY — tam ekran gün görünümü, önceki/sonraki gezinme ile -->
+    <div id="gun-detay-ekrani" class="gizli">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+            <h1 id="gun-detay-baslik" style="margin-bottom:6px;">Gün Detayı</h1>
+            <input type="date" id="gun-detay-tarih-sec" onchange="gunDetayTarihSec(this.value)" style="max-width:170px; margin-bottom:0;">
+        </div>
+        <div class="buton-grubu" style="margin-bottom:16px;">
+            <button class="btn-ikincil btn-kucuk" onclick="gunDetayGezin(-1)">← Önceki Gün</button>
+            <button class="btn-ikincil btn-kucuk" onclick="gunDetayAc(bugununTarihi)">Bugün</button>
+            <button class="btn-ikincil btn-kucuk" onclick="gunDetayGezin(1)">Sonraki Gün →</button>
+        </div>
+
+        <div class="kart">
+            <div class="skor-paneli">
+                <div class="skor-kutu"><strong id="gd-kalori">0</strong><span>Kalori</span><span class="hedef-yazi" id="gd-hedef-kalori">Hedef: 0</span></div>
+                <div class="skor-kutu"><strong id="gd-protein">0</strong><span>Protein</span><span class="hedef-yazi" id="gd-hedef-protein">Hedef: 0g</span></div>
+                <div class="skor-kutu"><strong id="gd-yag">0</strong><span>Yağ</span><span class="hedef-yazi" id="gd-hedef-yag">Hedef: 0g</span></div>
+                <div class="skor-kutu"><strong id="gd-karb">0</strong><span>Karbonhidrat</span><span class="hedef-yazi" id="gd-hedef-karb">Hedef: 0g</span></div>
+            </div>
+            <div class="ilerleme-yolu" style="margin-top:12px;"><div class="ilerleme-cubuk" id="gd-ilerleme-kalori" style="width:0%;"></div></div>
+            <span class="hedef-yazi" id="gd-uyum" style="margin-top:6px;"></span>
+        </div>
+
+        <div class="kart kart-kompakt">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h2 style="text-align:left; font-size:15px; margin-bottom:0;">🍽 Tüketilen Besinler</h2>
+                <button class="btn-ikincil btn-kucuk" id="gd-ekle-btn" onclick="tuketimEkranAc()">+ Besin Ekle</button>
+            </div>
+            <div id="gun-detay-ogun-listesi" style="margin-top:10px;"></div>
+        </div>
+
+        <div class="kart kart-kompakt">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="hedef-yazi" style="margin-top:0;">💧 Su</span>
+                <strong id="gd-su" style="font-family:var(--font-baslik);">0 ml</strong>
+            </div>
+            <div class="ilerleme-yolu" style="margin-top:8px;"><div class="ilerleme-cubuk" id="gd-su-bar" style="width:0%;"></div></div>
+            <span class="hedef-yazi" id="gd-su-hedef" style="margin-top:6px;"></span>
+        </div>
+
+        <div class="kart kart-kompakt">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <h2 style="text-align:left; font-size:15px; margin-bottom:0;">👟 Egzersiz & Adım</h2>
+                <span class="hedef-yazi" id="gd-egz-ozet" style="margin-top:0;"></span>
+            </div>
+            <div id="gun-detay-egz-liste"></div>
+        </div>
+
+        <div class="kart kart-kompakt">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <h2 style="text-align:left; font-size:15px; margin-bottom:0;">💊 Takviyeler</h2>
+                <span class="hedef-yazi" id="gd-takviye-oran" style="margin-top:0;"></span>
+            </div>
+            <div id="gun-detay-takviye-liste"></div>
+        </div>
+
+        <div class="kart kart-kompakt">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="hedef-yazi" style="margin-top:0;">⚖ Kilo</span>
+                <strong id="gd-kilo" style="font-family:var(--font-baslik);">-</strong>
+            </div>
         </div>
     </div>
 
@@ -471,16 +604,28 @@
 
     <div class="alt-nav">
         <div class="alt-nav-ic">
-            <button class="nav-btn" id="nav-ana" onclick="navGit('ana-ekran')"><span class="nav-ikon">⌂</span>Ana Sayfa</button>
-            <button class="nav-btn" id="nav-ekle" onclick="navGit('tuketim-ekrani')"><span class="nav-ikon">＋</span>Günlük</button>
-            <button class="nav-btn" id="nav-istatistik" onclick="navGit('gecmis-ekrani')"><span class="nav-ikon">📊</span>İstatistik</button>
+            <button class="nav-btn" id="nav-ana" onclick="navGit('ana-ekran')"><span class="nav-ikon">⌂</span>Ana</button>
+            <button class="nav-btn" id="nav-ilerleme" onclick="navGit('gecmis-ekrani')"><span class="nav-ikon">📈</span>İlerleme</button>
+            <button class="nav-btn nav-btn-ekle" id="nav-ekle" onclick="tuketimEkranAc()"><span class="nav-ikon nav-ikon-ekle">＋</span><span class="nav-ekle-yazi">Ekle</span></button>
+            <button class="nav-btn" id="nav-analiz" onclick="navGit('analiz-ekrani')"><span class="nav-ikon">🧠</span>Analiz</button>
             <button class="nav-btn" id="nav-daha" onclick="navGit('daha-fazla-ekrani')"><span class="nav-ikon">☰</span>Daha Fazla</button>
         </div>
     </div>
 
     <div class="toast-konteyner" id="toast-konteyner"></div>
-    <script src="app.js"></script>
 
+    <!-- NUTRIO MODAL (replaces native prompt/confirm) -->
+    <div id="nutrio-modal-overlay" class="gizli"></div>
 
+    <script src="./besinler.js"></script>
+    <script src="./app.js"></script>
+    <script>
+        // PWA — service worker kaydı (yalnızca HTTPS/localhost'ta çalışır; file://'de devre dışı)
+        if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js').catch((err) => console.warn('Service worker kaydedilemedi:', err));
+            });
+        }
+    </script>
 </body>
 </html>
