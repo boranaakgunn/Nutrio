@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nutrio — Günlük Beslenme Takibi</title>
+    <meta name="theme-color" content="#0b0e0c">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" sizes="180x180" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="sayfa-govde">
+
+    <!-- 0a. ONBOARDING (Faz 6 — yalnızca ilk açılışta, bir kez görünür) -->
+    <div id="onboarding-ekrani" class="gizli">
+        <div class="ob-ic">
+            <div id="ob-adim-0" class="ob-adim">
+                <div class="ob-ikon">🥗</div>
+                <h1>Nutrio'ya Hoş Geldin</h1>
+                <p>Nutrio; yediklerini, suyunu ve kilonu tek yerden takip eden, tamamen tarayıcında çalışan bir beslenme günlüğü.</p>
+            </div>
+            <div id="ob-adim-1" class="ob-adim gizli">
+                <div class="ob-ikon">🎯</div>
+                <h1>Hedefini Belirle</h1>
+                <p>Profil bilgilerini girdiğinde günlük kalori ve makro hedeflerin senin için otomatik hesaplanır.</p>
+            </div>
+            <div id="ob-adim-2" class="ob-adim gizli">
+                <div class="ob-ikon">🍽️</div>
+                <h1>Beslenmeni Takip Et</h1>
+                <p>Öğünlerini, suyunu ve egzersizini birkaç dokunuşla kaydet — verilerin yalnızca bu cihazda saklanır.</p>
+            </div>
+            <div id="ob-adim-3" class="ob-adim gizli">
+                <div class="ob-ikon">📈</div>
+                <h1>İlerlemeni Gör</h1>
+                <p>Grafikler, trendler ve analizlerle gelişimini gün gün izle.</p>
+            </div>
+
+            <div class="ob-noktalar" id="ob-noktalar">
+                <span class="ob-nokta aktif"></span><span class="ob-nokta"></span><span class="ob-nokta"></span><span class="ob-nokta"></span>
+            </div>
+
+            <button id="ob-ileri-btn" onclick="onboardingIleri()">İleri</button>
+            <button class="btn-ikincil ob-atla" onclick="onboardingAtla()">Atla</button>
+        </div>
+    </div>
+    <!-- 0. KULLANICI PROFİLİ SİHİRBAZI (Yeni oluşturma + Düzenleme) -->
+    <div id="profil-ekrani" class="gizli kart">
+        <h1 id="profil-form-baslik">Yeni Kişi Ekle</h1>
+        <p style="font-size:14px; color:var(--yazi-pasif);">Kişisel hesaplama çekmeceni oluşturalım.</p>
+        <input type="hidden" id="pr-duzenle-id">
+
+        <label>Avatar</label>
+        <div class="avatar-secim" id="pr-avatar-secim"></div>
+
+        <label>Profil Adı</label>
+        <input type="text" id="pr-ad" placeholder="Örn: Ahmet veya A Kişisi">
+
+        <label>Cinsiyet</label>
+        <select id="pr-cinsiyet"><option value="erkek">Erkek</option><option value="kadin">Kadın</option></select>
+
+        <label>Yaş</label>
+        <input type="number" id="pr-yas" placeholder="Örn: 25">
+        <label>Boy (cm)</label>
+        <input type="number" id="pr-boy" placeholder="Örn: 175">
+        <label>Kilo (kg)</label>
+        <input type="number" id="pr-kilo" placeholder="Örn: 70">
+
+        <div class="profil-bolum-basligi">Günlük Yaşam Aktivitesi</div>
+        <label>Günlük Ortalama Adım</label>
+        <select id="pr-adim">
+            <option value="1.15">0 – 3.999 adım</option>
+            <option value="1.2" selected>4.000 – 6.999 adım</option>
+            <option value="1.275">7.000 – 9.999 adım</option>
+            <option value="1.35">10.000 – 12.499 adım</option>
+            <option value="1.425">12.500+ adım</option>
+        </select>
+
+        <div class="profil-bolum-basligi">Egzersiz</div>
+        <label>Haftada Kaç Gün Egzersiz Yapıyorsun?</label>
+        <select id="pr-egzersiz-gun" onchange="egzersizAlanGuncelleForm()">
+            <option value="0">0 gün (yapmıyorum)</option>
+            <option value="1">1 gün</option>
+            <option value="2">2 gün</option>
+            <option value="3" selected>3 gün</option>
+            <option value="4">4 gün</option>
+            <option value="5">5 gün</option>
+            <option value="6">6+ gün</option>
+        </select>
+
+        <div id="pr-egzersiz-yok-notu" class="form-not gizli" style="margin-top:-8px;">🚫 Egzersiz hesaba katılmayacak.</div>
+
+        <div id="pr-egzersiz-detay-alani">
+            <label>Ağırlıklı Egzersiz Türü</label>
+            <select id="pr-egzersiz-tip">
+                <option value="agirlik" selected>Ağırlık Antrenmanı</option>
+                <option value="kosu">Koşu</option>
+                <option value="futbol">Futbol</option>
+                <option value="bisiklet">Bisiklet</option>
+                <option value="kardiyo">Kardiyo</option>
+                <option value="karisik">Karışık</option>
+            </select>
+
+            <label>Ortalama Egzersiz Süresi</label>
+            <select id="pr-egzersiz-sure">
+                <option value="30">30 dakika</option>
+                <option value="45" selected>45 dakika</option>
+                <option value="60">60 dakika</option>
+                <option value="75">75 dakika</option>
+                <option value="90">90+ dakika</option>
+            </select>
+
+            <label>Antrenman Günlerin (opsiyonel)</label>
+            <div class="buton-grubu" id="pr-antrenman-gun-secim" style="flex-wrap:wrap;"></div>
+            <p class="form-not" style="margin-top:2px;">Seçersen ana ekranda o gün "🏋️ Antrenman Günü", diğer günlerde "🛋️ Dinlenme Günü" rozeti görünür ve kalori hedefin buna göre otomatik ayarlanır.</p>
+        </div>
+
+        <div class="profil-bolum-basligi">Hedef</div>
+        <label>Ne Yapmak İstiyorsun?</label>
+        <select id="pr-hedef" onchange="prHedefAciklamaGuncelle()">
+            <option value="kayip">🔻 Yağ Kaybı</option>
+            <option value="koruma" selected>⚖️ Kilo Koruma</option>
+            <option value="kazanim">🔺 Kas / Kilo Kazanımı</option>
+        </select>
+        <p class="form-not" id="pr-hedef-aciklama"></p>
+        <p class="form-not">Bu bir başlangıç tahminidir. Gerçek kilo değişimine göre birkaç hafta içinde ayarlaman gerekebilir — Nutrio bu ayarı sana zamanla otomatik önerecek.</p>
+
+        <!-- FAZ 11 — İleri seviye: makroları elle ayarla (hesaplaHedefler'e dokunmaz, sadece dönüş değerini ezer) -->
+        <label style="display:flex; align-items:center; gap:10px; margin-top:4px; font-size:14px; font-weight:700; cursor:pointer; text-transform:none; letter-spacing:0;">
+            <input type="checkbox" id="pr-makro-override" onchange="prMakroOverrideAcKapa()" style="width:20px; height:20px; margin:0; flex:0 0 auto; accent-color:var(--vurgu-renk);">
+            İleri Seviye: Makroları Elle Ayarla
+        </label>
+        <div id="pr-makro-override-alani" class="gizli">
+            <div class="oc-satir"><span class="oc-etiket">Protein (g)</span><input type="number" step="1" min="0" id="pr-makro-pro" placeholder="Örn: 140"></div>
+            <div class="oc-satir"><span class="oc-etiket">Yağ (g)</span><input type="number" step="1" min="0" id="pr-makro-yag" placeholder="Örn: 60"></div>
+            <div class="oc-satir"><span class="oc-etiket">Karb (g)</span><input type="number" step="1" min="0" id="pr-makro-karb" placeholder="Örn: 200"></div>
+            <p class="form-not" style="margin-top:-4px;">Kalori, bu üç değerden otomatik yeniden hesaplanır (P×4 + Y×9 + K×4). Boş bırakırsan o makro Nutrio tahmininde kalır.</p>
+        </div>
+
+        <button id="profil-kaydet-btn" onclick="profilKaydet()">Profili Yarat ve Başla</button>
+        <button class="btn-ikincil gizli" id="iptal-profil-btn" onclick="sayfaGoster('ana-ekran')">İptal</button>
+        <button class="btn-tehlike gizli" id="profil-sil-btn" onclick="profilSil()" style="width:100%; border-radius:50px; margin-top:10px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Bu Profili Sil</button>
+    </div>
+
+    <!-- 1. ANA EKRAN (DASHBOARD) -->
+    <div id="ana-ekran" class="gizli">
+
+        <div class="marka-rozet"><span class="nokta"></span>Nutrio</div>
+
+        <div class="profil-header">
+            <select id="aktif-profil-secim" onchange="profilDegistir()"></select>
+            <button class="btn-ikincil" id="profil-duzenle-btn" onclick="profilDuzenleAc()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> Profil</button>
+        </div>
+
+        <h1 id="ana-baslik" style="font-size: 24px; text-align: left; margin-left: 5px; display:flex; align-items:center; gap:8px;">Bugünün Yakıtı</h1>
+        <div id="gun-tipi-rozet-alani" style="margin-left:5px;"></div>
+        <div id="ana-ozel-gun-alani" style="margin-left:5px; margin-top:2px; margin-bottom:12px;"></div>
+
+        <!-- Faz 5: Bugün için planlanan öğünler (boşsa gizli kalır) -->
+        <!-- Faz 6: Yedek hatırlatıcısı (14+ gündür yedek alınmadıysa görünür) -->
+        <div id="yedek-hatirlatici-alan" class="gizli"></div>
+        <div id="ana-plan-karti" class="gizli"></div>
+        <div id="ana-antrenman-karti" class="gizli"></div>
+
+        <div class="kart" id="kart-skor">
+            <div class="skor-paneli">
+                <div class="skor-kutu">
+                    <strong id="gun-kalori">0</strong><span>Kalori</span><span class="hedef-yazi" id="hedef-kalori">Hedef: 0</span>
+                    <div class="ilerleme-yolu"><div class="ilerleme-cubuk" id="ilerleme-kalori" style="width:0%;"></div></div>
+                </div>
+                <div class="skor-kutu">
+                    <strong id="gun-protein">0</strong><span>Protein</span><span class="hedef-yazi" id="hedef-protein">Hedef: 0g</span>
+                    <div class="ilerleme-yolu"><div class="ilerleme-cubuk" id="ilerleme-protein" style="width:0%;"></div></div>
+                </div>
+                <div class="skor-kutu">
+                    <strong id="gun-yag">0</strong><span>Yağ</span><span class="hedef-yazi" id="hedef-yag">Hedef: 0g</span>
+                    <div class="ilerleme-yolu"><div class="ilerleme-cubuk" id="ilerleme-yag" style="width:0%;"></div></div>
+                </div>
+                <div class="skor-kutu">
+                    <strong id="gun-karb">0</strong><span>Karbonhidrat</span><span class="hedef-yazi" id="hedef-karb">Hedef: 0g</span>
+                    <div class="ilerleme-yolu"><div class="ilerleme-cubuk" id="ilerleme-karb" style="width:0%;"></div></div>
+                </div>
+            </div>
+            <div class="kalan-grid" id="kalan-grid"></div>
+        </div>
+
+        <div class="kart kart-kompakt" id="kart-aktivite">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                <h2 style="text-align:left; font-size:15px; margin-bottom:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><circle cx="13" cy="4.5" r="1.8"></circle><path d="M10 21l1.5-6-2.5-2.5 1-5L13 9l3 1.5 2 3"></path><path d="M10 21l-2.5-1.5L6 21"></path><path d="M13.5 15.5l3.5 1 1.5 3"></path></svg> Bugünkü Aktivite</h2>
+                <span class="hedef-yazi" id="aktivite-ayar-yazi" style="margin-top:0;"></span>
+            </div>
+            <div class="buton-grubu" style="margin-top:10px;">
+                <input type="number" id="bugun-adim-input" placeholder="Bugünkü adım (opsiyonel)">
+                <button class="btn-ikincil btn-fit" style="margin-top:0;" onclick="bugunAdimKaydet()">Kaydet</button>
+            </div>
+            <p class="form-not" id="bugun-adim-bilgi" style="margin:6px 0 0;"></p>
+
+            <div style="margin-top:14px; border-top:1px solid rgba(255,255,255,.06); padding-top:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span class="hedef-yazi" style="margin-top:0; font-size:15px; font-weight:800; color:var(--yazi-ana); opacity:1; font-family:var(--font-baslik); letter-spacing:-.03em;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><path d="M6.5 6.5h11L20 21H4L6.5 6.5z"></path><line x1="9" y1="6.5" x2="9" y2="4"></line><line x1="15" y1="6.5" x2="15" y2="4"></line><line x1="9" y1="4" x2="15" y2="4"></line></svg> Bugünkü Egzersiz</span>
+                    <span class="hedef-yazi" style="margin-top:0; cursor:pointer; text-decoration:underline;" onclick="bugunEgzersizAlaniAcKapa()">+ Egzersiz Ekle</span>
+                    <span class="hedef-yazi" style="margin-top:0; margin-left:10px; cursor:pointer; text-decoration:underline;" onclick="egzersizKutuphaneAc(bugununTarihi, 'ana-ekran')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg> Kütüphaneden Seç</span>
+                </div>
+                <div class="egz-durum-grup" id="egz-durum-grup">
+                    <button type="button" class="egz-durum-btn" onclick="bugunEgzersizDurumAyarla('yapildi')">✅ Yaptım</button>
+                    <button type="button" class="egz-durum-btn" onclick="bugunEgzersizDurumAyarla('planli_degil')">⏭️ Planlı değildi</button>
+                    <button type="button" class="egz-durum-btn" onclick="bugunEgzersizDurumAyarla('yapmadi')">❌ Yapmadım</button>
+                </div>
+                <div id="bugun-egzersiz-liste" style="margin-top:6px;"></div>
+                <div class="buton-grubu gizli" id="bugun-egzersiz-form" style="margin-top:10px; flex-wrap:wrap;">
+                    <select id="beg-tip">
+                        <option value="agirlik">Ağırlık</option>
+                        <option value="kosu">Koşu</option>
+                        <option value="futbol">Futbol</option>
+                        <option value="bisiklet">Bisiklet</option>
+                        <option value="kardiyo">Kardiyo</option>
+                        <option value="karisik">Karışık</option>
+                    </select>
+                    <input type="number" id="beg-sure" placeholder="Dakika">
+                    <button style="margin-top:0;" onclick="bugunEgzersizEkle()">Ekle</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="kalibrasyon-karti" class="kart gizli oneri-kart">
+            <h2 style="text-align:left; font-size:15px; margin-bottom:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg> Kalori Hedefi Önerisi</h2>
+            <p id="kalibrasyon-metni" style="font-size:13.5px; color:var(--yazi-pasif); margin:0 0 14px;"></p>
+            <div class="buton-grubu">
+                <button class="btn-ikincil" onclick="kalibrasyonReddet()">Şimdi Değil</button>
+                <button onclick="kalibrasyonUygula()">Hedefi Güncelle</button>
+            </div>
+        </div>
+
+        <div id="oneri-sonuc-karti" class="kart gizli oneri-kart">
+            <h2 style="text-align:left; font-size:15px; margin-bottom:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg> Bunu Kapatmak İçin Seçenekler</h2>
+            <div id="oneri-sonuc-govde" style="font-size:13.5px;"></div>
+        </div>
+
+        <div id="eksik-sonuc-karti" class="kart gizli oneri-kart">
+            <h2 style="text-align:left; font-size:15px; margin-bottom:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> Bugün Ne Eksik?</h2>
+            <div id="eksik-sonuc-govde"></div>
+            <button class="btn-ikincil" style="margin-top:10px;" onclick="document.getElementById('eksik-sonuc-karti').classList.add('gizli')">Kapat</button>
+        </div>
+
+        <div id="takviye-mini-karti" class="kart gizli kart-kompakt">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <h2 style="text-align:left; font-size:15px; margin-bottom:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><rect x="3.5" y="8.5" width="17" height="7" rx="3.5" transform="rotate(-45 12 12)"></rect><line x1="8.5" y1="8.5" x2="15.5" y2="15.5"></line></svg> Bugünkü Takviyeler</h2>
+                <span class="hedef-yazi" id="takviye-mini-oran" style="margin-top:0;"></span>
+            </div>
+            <div id="takviye-mini-liste"></div>
+        </div>
+
+        <div class="kart kart-kompakt" id="kart-su">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:14px;">
+                <div>
+                    <span class="hedef-yazi" style="margin-top:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><path d="M12 2.7s6.5 7 6.5 11.3a6.5 6.5 0 0 1-13 0C5.5 9.7 12 2.7 12 2.7z"></path></svg> Su</span>
+                    <strong id="su-miktar" style="font-family:var(--font-baslik); font-size:18px; display:block; margin-top:2px;">0 ml</strong>
+                </div>
+                <div class="buton-grubu" style="max-width:160px; margin:0;">
+                    <button class="btn-ikincil btn-kucuk btn-satir" onclick="suEkle(-250)">− 250</button>
+                    <button class="btn-kucuk btn-satir" onclick="suEkle(250)">+ 250</button>
+                </div>
+            </div>
+            <div class="ilerleme-yolu" style="margin-top:10px;"><div class="ilerleme-cubuk" id="ilerleme-su" style="width:0%;"></div></div>
+            <div style="display:flex; justify-content:space-between; margin-top:6px;">
+                <span class="hedef-yazi" id="su-hedef-yazi" style="margin-top:0;"></span>
+                <span class="hedef-yazi" style="margin-top:0; cursor:pointer; text-decoration:underline;" onclick="suHedefDuzenleAc()">hedefi düzenle</span>
+            </div>
+            <div id="su-ozel-buton-alani" style="display:flex; gap:6px; align-items:center; justify-content:flex-end; margin-top:6px;"></div>
+            <div style="text-align:right; margin-top:6px;">
+                <span class="hedef-yazi" style="margin-top:0; cursor:pointer; text-decoration:underline;" onclick="icecekGunluguAc(bugununTarihi)">+ Çay/Kahve/Diğer İçecek</span>
+            </div>
+            <div class="buton-grubu gizli" id="su-hedef-alani" style="margin-top:10px;">
+                <input type="number" id="su-hedef-input" placeholder="Yeni hedef (ml)" style="margin-bottom:0;">
+                <button class="btn-ikincil" onclick="suHedefKaydet()">Kaydet</button>
+            </div>
+            <div class="buton-grubu gizli" id="su-ozel-alani" style="margin-top:10px;">
+                <input type="number" id="su-ozel-input" placeholder="Özel miktar (ml)" style="margin-bottom:0;">
+                <button class="btn-ikincil" onclick="suOzelMiktarKaydet()">Kaydet</button>
+            </div>
+        </div>
+
+        <div class="kart" id="kart-ogunler">
+            <button onclick="tuketimEkranAc()">Günüme Besin Ekle (+)</button>
+            <div class="buton-grubu" style="margin-top:8px;">
+                <button class="btn-ikincil buton-chip" onclick="oneriHesapla()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg> Ne Yiyebilirim?</button>
+                <button class="btn-ikincil buton-chip" onclick="eksikOlaniGoster()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> Bugün Ne Eksik?</button>
+            </div>
+
+            <h2 style="text-align: left; margin-top: 30px; margin-left: 5px; font-size: 19px;">Bugünün Öğünleri</h2>
+            <p class="grafik-ipucu" style="text-align:left; margin:-10px 0 10px 5px;">İpucu: bir kaydı sola kaydırarak sil, sağa kaydırarak düzenle.</p>
+            <div id="yenenler-listesi"></div>
+        </div>
+    </div>
+
+    <!-- 2. BESİN KÜTÜPHANESİ -->
+    <div id="kutuphane-ekrani" class="gizli">
+        <h1>Besin Listesi</h1>
+        <button onclick="besinFormuAc()">Yeni Besin Ekle (+)</button>
+        <div style="position:relative; margin-top:16px; margin-bottom:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--yazi-pasif)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); pointer-events:none;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><input type="text" id="k-arama" placeholder="Besin ara..." oninput="kListele()" onfocus="aramaGecmisiGoster('k-arama', 'k-arama-gecmis')" onblur="aramaGecmisiGizle('k-arama-gecmis')" style="margin:0; padding-left:36px;"></div>
+        <select id="k-siralama" onchange="besinSiralamaSec(this.value)" style="margin-top:8px; margin-bottom:0;">
+            <option value="varsayilan">Sırala: Varsayılan (Favori + A-Z)</option>
+            <option value="kalori-artan">Kaloriye göre: Azdan Çoğa</option>
+            <option value="kalori-azalan">Kaloriye göre: Çoktan Aza</option>
+            <option value="protein-artan">Proteine göre: Azdan Çoğa</option>
+            <option value="protein-azalan">Proteine göre: Çoktan Aza</option>
+        </select>
+        <div class="arama-gecmis gizli" id="k-arama-gecmis"></div>
+        <div class="kategori-sekmeler" id="kategori-sekmeler"></div>
+        <h2 style="margin-top: 18px; text-align: left;">Kayıtlı Besinler</h2>
+        <div id="kutuphane-listesi"></div>
+    </div>
+
+    <!-- 3. YENİ BESİN OLUŞTUR / DÜZENLE -->
+    <div id="besin-form-ekrani" class="gizli kart">
+        <h2 id="form-baslik">Besin Ekle/Düzenle</h2>
+        <input type="hidden" id="b-id">
+        <label>Marka (opsiyonel)</label><input type="text" id="b-marka" placeholder="Örn: Barilla">
+        <label>Besin Adı</label><input type="text" id="b-ad" placeholder="Örn: Penne Rigate">
+        <label>Kategori</label>
+        <select id="b-kategori"></select>
+        <label>Birim</label>
+        <select id="b-birim" onchange="birimDegistiFormda()">
+            <option value="g">Gram (g)</option>
+            <option value="ml">Mililitre (ml)</option>
+            <option value="adet">Adet</option>
+            <option value="porsiyon">Porsiyon</option>
+            <option value="dilim">Dilim</option>
+        </select>
+        <label>Referans Miktar (100 g/ml için 100, adet/porsiyon/dilim için 1)</label><input type="number" id="b-ref">
+        <label>Kalori (Kcal)</label><input type="number" id="b-cal">
+        <label>Protein (g)</label><input type="number" step="0.1" id="b-pro">
+        <label>Yağ (g)</label><input type="number" step="0.1" id="b-yag">
+        <label>Karbonhidrat (g)</label><input type="number" step="0.1" id="b-karb">
+        <button onclick="besinKaydet()">Sisteme Kaydet</button>
+        <button class="btn-tehlike" onclick="sayfaGoster('kutuphane-ekrani')" style="width:100%; border-radius:50px; margin-top:10px;">İptal</button>
+    </div>
+
+    <!-- 4. TÜKETİM EKLEME / DÜZENLEME (iç sekmeler: Besin Ara | Şablonlar — Faz 8; Sepet — Faz 9) -->
+    <div id="tuketim-ekrani" class="gizli kart">
+        <h2 id="tuketim-form-baslik">Ne Yedin?</h2>
+        <input type="hidden" id="t-duzenle-id">
+        <div id="tuketim-sepeti-alani" class="gizli"></div>
+        <div class="kategori-sekmeler" id="tuketim-sekmeler">
+            <button class="sekme-btn aktif" id="tuketim-sekme-besin" onclick="tuketimSekmeSec('besin')">Besin Ara</button>
+            <button class="sekme-btn" id="tuketim-sekme-sablon" onclick="tuketimSekmeSec('sablon')">Şablonlar</button>
+        </div>
+        <div id="tuketim-panel-besin">
+        <div style="position:relative; margin-bottom:14px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--yazi-pasif)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); pointer-events:none;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><input type="text" id="t-arama" placeholder="Besin ara..." oninput="tListele()" onfocus="aramaGecmisiGoster('t-arama', 't-arama-gecmis')" onblur="aramaGecmisiGizle('t-arama-gecmis')" style="margin:0; padding-left:36px;"></div>
+            <select id="t-siralama" onchange="besinSiralamaSec(this.value)" style="margin-top:8px; margin-bottom:0;">
+                <option value="varsayilan">Sırala: Varsayılan (Favori + A-Z)</option>
+                <option value="kalori-artan">Kaloriye göre: Azdan Çoğa</option>
+                <option value="kalori-azalan">Kaloriye göre: Çoktan Aza</option>
+                <option value="protein-artan">Proteine göre: Azdan Çoğa</option>
+                <option value="protein-azalan">Proteine göre: Çoktan Aza</option>
+            </select>
+            <div class="arama-gecmis gizli" id="t-arama-gecmis"></div>
+            <div class="kategori-sekmeler" id="t-kategori-sekmeler"></div>
+            <div id="t-secim-listesi" style="max-height:230px; overflow-y:auto; margin-bottom:16px; margin-top:10px;"></div>
+            <label>Miktar</label>
+            <div class="porsiyon-grid" id="t-porsiyon-grid"></div>
+            <!-- Faz 12 — göz kararı ön ayarlar (sadece g/ml birimli besinlerde görünür) -->
+            <div id="t-goz-karari-alani" class="gizli" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;"></div>
+            <input type="number" id="t-miktar" placeholder="Kaç birim yedin?">
+            <label>Öğün</label>
+            <select id="t-ogun"></select>
+        </div>
+        <div id="tuketim-panel-sablon" class="gizli">
+            <p class="form-not" style="margin-top:0;">Bir şablona dokun, içeriği anında günlüğe eklenir.</p>
+            <div id="tuketim-sablon-listesi" style="max-height:340px; overflow-y:auto;"></div>
+        </div>
+        <div class="buton-grubu" id="tuketim-buton-satiri">
+            <button id="tuketim-kaydet-btn" onclick="tuketimKaydet()">Bugüne Ekle</button>
+            <button class="btn-ikincil" id="tuketim-sepete-ekle-btn" onclick="tuketimSepeteEkle()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg> Sepete Ekle</button>
+        </div>
+        <button class="btn-tehlike" id="tuketim-iptal-btn" onclick="sayfaGoster('ana-ekran')" style="width:100%; border-radius:50px; margin-top:10px;">İptal</button>
+    </div>
+
+    <!-- 5. GEÇMİŞ ARŞİVİ (İlerleme) — iç sekmeler: Genel | Trend | Analiz -->
+    <div id="gecmis-ekrani" class="gizli">
+        <h1 style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">Geçmiş &amp; İstatistik <button type="button" class="ipucu-btn" onclick="ipucuGoster('ilerleme')" aria-label="Yardım">?</button></h1>
+
+        <div class="yazdirma-raporu-satir">
+            <button class="btn-ikincil btn-kucuk" onclick="yazdirmaRaporuOlustur(); window.print();"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg> Raporu Yazdır</button>
+        </div>
+
+        <div class="kategori-sekmeler" id="ilerleme-sekmeler">
+            <button class="sekme-btn aktif" id="ilerleme-sekme-genel" onclick="ilerlemeSekmeSec('genel')">Genel</button>
+            <button class="sekme-btn" id="ilerleme-sekme-trend" onclick="ilerlemeSekmeSec('trend')">Trend</button>
+            <button class="sekme-btn" id="ilerleme-sekme-analiz" onclick="ilerlemeSekmeSec('analiz')">Analiz</button>
+        </div>
+
+        <div id="ilerleme-panel-genel">
+            <div class="kart">
+                <h2 style="text-align:left; font-size:16px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg> Son 7 Gün</h2>
+                <div id="analitik-alani"></div>
+            </div>
+
+            <p id="gecmis-isim-bilgi" style="text-align:center; color:var(--yazi-pasif); font-size:14px;"></p>
+            <div id="gecmis-listesi"></div>
+        </div>
+
+        <div id="ilerleme-panel-trend" class="gizli">
+            <div class="kart">
+                <h2 style="text-align:left; font-size:16px;" id="trend-baslik"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg> Trend (Son 14 Gün)</h2>
+                <div class="kategori-sekmeler" id="trend-makro-sekmeler"></div>
+                <div class="kategori-sekmeler" id="trend-zaman-sekmeler"></div>
+                <div id="trend-grafik-alan"></div>
+                <div class="grafik-ipucu">Bir noktaya dokun, o günün detayını gör</div>
+            </div>
+
+            <div class="kart">
+                <h2 style="text-align:left; font-size:16px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> Haftalık Karşılaştırma</h2>
+                <div id="haftalik-karsilastirma-alan"></div>
+            </div>
+        </div>
+
+        <div id="ilerleme-panel-analiz" class="gizli">
+            <div class="kart">
+                <h2 style="text-align:left; font-size:16px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> Genel Özet</h2>
+                <div id="analiz-ozet-alan"></div>
+            </div>
+
+            <div class="kart">
+                <h2 style="text-align:left; font-size:16px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"></path><line x1="9" y1="21" x2="15" y2="21"></line></svg> Nutrio Seni Tanıyor</h2>
+                <div id="icgoru-alan"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5b. FAZ 7: Yazdırılabilir rapor — normalde gizli, @media print ile görünür -->
+    <div id="yazdirma-raporu" class="gizli"></div>
+
+    <!-- 5a. PLAN — Faz 1 iskelet (boş durum) -->
+    <div id="plan-ekrani" class="gizli">
+        <h1 style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">Plan <button type="button" class="ipucu-btn" onclick="ipucuGoster('plan')" aria-label="Yardım">?</button></h1>
+        <p class="form-not" style="text-align:left; margin-top:-8px;">Beslenmeni ve antrenmanını önceden planla; market listen ve stoğun otomatik güncellensin.</p>
+
+        <div class="kategori-sekmeler" id="plan-sekmeler">
+            <button class="sekme-btn aktif" id="plan-sekme-plan" onclick="planSekmeSec('plan')">Beslenme</button>
+            <button class="sekme-btn" id="plan-sekme-antrenman" onclick="planSekmeSec('antrenman')">Antrenman</button>
+            <button class="sekme-btn" id="plan-sekme-market" onclick="planSekmeSec('market')">Market</button>
+            <button class="sekme-btn" id="plan-sekme-stok" onclick="planSekmeSec('stok')">Stok</button>
+        </div>
+
+
+        <div id="plan-panel-plan">
+            <div id="plan-gunler-alani"></div>
+        </div>
+
+        <div id="plan-panel-market" class="gizli">
+            <div class="buton-grubu">
+                <input type="text" id="market-manuel-input" placeholder="Market listesine ekle..." onkeydown="if (event.key === 'Enter') marketManuelEkle()">
+                <button class="btn-ikincil" style="margin-top:0;" onclick="marketManuelEkle()">Ekle</button>
+            </div>
+            <div id="market-png-satiri" style="margin-top:10px; text-align:right;">
+                <button class="btn-ikincil btn-kucuk" id="market-png-btn" onclick="marketListesiPngIndir()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg> Listeyi Görsel Olarak İndir</button>
+            </div>
+            <div id="market-liste-alani" style="margin-top:14px;"></div>
+            <div id="market-harcama-grafik" style="margin-top:14px;"></div>
+        </div>
+
+        <!-- Faz 12 — Stoğum (kiler): marketten işaretlenen maddeler buraya düşer, SKT eklenebilir -->
+        <div id="plan-panel-stok" class="gizli">
+            <div class="buton-grubu">
+                <input type="text" id="stok-manuel-input" placeholder="Stoğa ekle..." onkeydown="if (event.key === 'Enter') stokManuelEkle()">
+                <button class="btn-ikincil" style="margin-top:0;" onclick="stokManuelEkle()">Ekle</button>
+            </div>
+            <div id="stok-liste-alani" style="margin-top:14px;"></div>
+        </div>
+
+        <!-- FAZ 17 — Antrenman Planı: Egzersiz Kütüphanesi'nin üstüne, Plan'ın egzersiz karşılığı -->
+        <div id="plan-panel-antrenman" class="gizli">
+            <div id="antrenman-gunler-alani"></div>
+        </div>
+    </div>
+
+    <!-- 5b. PLAN SEÇİCİ — tarih + öğün için şablon/besin seçme (tam sayfa) -->
+    <div id="plan-secici-ekrani" class="gizli">
+        <button class="btn-ikincil btn-kucuk" onclick="sayfaGoster('plan-ekrani')" style="margin-bottom:12px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> Plana Dön</button>
+        <h1 id="plan-secici-baslik" style="font-size:22px;">Öğün Seç</h1>
+        <p class="form-not" id="plan-secici-alt-baslik" style="text-align:left; margin-top:-6px;"></p>
+
+        <div class="kategori-sekmeler" id="plan-secici-sekmeler">
+            <button class="sekme-btn aktif" id="plan-secici-sekme-sablon" onclick="planSeciciSekmeSec('sablon')">Şablonlar</button>
+            <button class="sekme-btn" id="plan-secici-sekme-besin" onclick="planSeciciSekmeSec('besin')">Besinler</button>
+        </div>
+
+        <div id="plan-secici-panel-sablon">
+            <div id="plan-secici-sablon-listesi"></div>
+        </div>
+
+        <div id="plan-secici-panel-besin" class="gizli">
+        <div style="position:relative; margin-bottom:14px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--yazi-pasif)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); pointer-events:none;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><input type="text" id="ps-arama" placeholder="Besin ara..." oninput="planSeciciBesinListele()" style="margin:0; padding-left:36px;"></div>
+            <div class="kategori-sekmeler" id="ps-kategori-sekmeler"></div>
+            <div id="plan-secici-besin-listesi"></div>
+        </div>
+
+        <!-- FAZ 9: miktar onaylandıktan sonra çıkan çoklu gün dağıtım paneli -->
+        <div id="plan-secici-dagitim-paneli" class="gizli" style="margin-top:16px;">
+            <div class="kart kart-kompakt" style="margin-bottom:0;">
+                <label style="display:flex; align-items:center; gap:10px; margin:0; padding:4px 2px 2px; cursor:pointer; text-transform:none; letter-spacing:0; font-size:13.5px; font-weight:700; color:var(--yazi-ana);">
+                    <input type="checkbox" id="ps-dagit-acik" onchange="planSeciciDagitAcKapa()" style="width:18px; height:18px; margin:0; flex:0 0 auto; accent-color:var(--vurgu-renk);">
+                    <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><path d="M21 8l-9-5-9 5v10l9 5 9-5V8z"></path><polyline points="3 8 12 13 21 8"></polyline><line x1="12" y1="13" x2="12" y2="23"></line></svg> Birden Fazla Güne Dağıt</span>
+                </label>
+                <div id="ps-dagit-gunler-alani" class="gizli" style="margin-top:10px;">
+                    <div id="ps-dagit-gunler" style="margin-bottom:12px;"></div>
+                </div>
+                <div class="buton-grubu">
+                    <button id="ps-onayla-btn" onclick="planSeciciOnayla()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><polyline points="20 6 9 17 4 12"></polyline></svg> Planla</button>
+                    <button class="btn-ikincil" onclick="planSeciciDagitimPaneliKapat()">Vazgeç</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. KİLO TAKİBİ -->
+    <div id="kilo-ekrani" class="gizli">
+        <h1 style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">Kilo Takibi <button type="button" class="ipucu-btn" onclick="ipucuGoster('kilo')" aria-label="Yardım">?</button></h1>
+
+        <div class="kart">
+            <div class="kilo-uc-nokta">
+                <span id="kilo-baslangic">-</span>
+                <span class="ok">→</span>
+                <span id="kilo-bugun">-</span>
+                <span class="ok">→</span>
+                <span class="hedef-deger" id="kilo-hedef-nokta">🎯 -</span>
+            </div>
+            <div class="kategori-sekmeler" id="kilo-zaman-sekmeler"></div>
+            <div id="kilo-grafik-alan"></div>
+            <div class="grafik-ipucu">Bir noktaya dokun, o günün detayını gör</div>
+            <div class="analitik-grid" style="margin-top:16px;">
+                <div class="analitik-hucre"><strong id="kilo-degisim">-</strong><span>Toplam Değişim</span></div>
+                <div class="analitik-hucre"><strong id="kilo-haftalik">-</strong><span>Haftalık Değişim</span></div>
+            </div>
+            <p id="kilo-hedef-bilgi" class="gizli hedef-yazi" style="margin-top:10px; font-size:13px;"></p>
+            <p id="kilo-tahmin-bilgi" class="gizli hedef-yazi" style="margin-top:4px; font-size:13px;"></p>
+        </div>
+
+        <div class="kart" id="olcum-grafik-karti" style="display:none;">
+            <h2 style="text-align:left; font-size:16px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><rect x="2" y="9" width="20" height="6" rx="1" transform="rotate(-45 12 12)"></rect><line x1="8.5" y1="9.5" x2="10" y2="8"></line><line x1="11.5" y1="12.5" x2="13" y2="11"></line><line x1="14.5" y1="15.5" x2="16" y2="14"></line></svg> Vücut Ölçüleri</h2>
+            <div class="kategori-sekmeler" id="olcum-sekmeler"></div>
+            <div id="olcum-grafik-alan"></div>
+        </div>
+
+        <div class="kart">
+            <label>Bugünkü Kilonu Gir (kg)</label>
+            <input type="number" step="0.1" id="kilo-yeni" placeholder="Örn: 74.8">
+            <input type="date" id="kilo-tarih" style="max-width:170px; margin-top:8px;" title="Kaydın tarihi — geçmişe dönük giriş için değiştirebilirsin">
+            <div id="olcum-alani" class="gizli">
+                <div class="oc-satir"><span class="oc-etiket">Bel (cm)</span><input type="number" step="0.1" id="oc-bel" placeholder="isteğe bağlı"></div>
+                <div class="oc-satir"><span class="oc-etiket">Boyun (cm)</span><input type="number" step="0.1" id="oc-boyun" placeholder="isteğe bağlı"></div>
+                <div class="oc-satir"><span class="oc-etiket">Göğüs (cm)</span><input type="number" step="0.1" id="oc-gogus" placeholder="isteğe bağlı"></div>
+                <div class="oc-satir"><span class="oc-etiket">Kol (cm)</span><input type="number" step="0.1" id="oc-kol" placeholder="isteğe bağlı"></div>
+                <div class="oc-satir"><span class="oc-etiket">Kalça (cm)</span><input type="number" step="0.1" id="oc-kalca" placeholder="isteğe bağlı"></div>
+                <div class="oc-satir"><span class="oc-etiket">Bacak (cm)</span><input type="number" step="0.1" id="oc-bacak" placeholder="isteğe bağlı"></div>
+            </div>
+            <span class="hedef-yazi" style="cursor:pointer; text-decoration:underline; display:inline-block; margin-bottom:12px;" onclick="olcumAlaniAcKapa()" id="olcum-toggle-yazi">+ Vücut ölçüleri ekle (opsiyonel)</span>
+            <button onclick="kiloEkle()">Kaydet</button>
+        </div>
+
+        <div class="kart">
+            <label>Hedef Kilo (kg) — isteğe bağlı</label>
+            <input type="number" step="0.1" id="kilo-hedef-input" placeholder="Örn: 70">
+            <button class="btn-ikincil" onclick="kiloHedefKaydet()">Hedefi Kaydet</button>
+        </div>
+
+        <h2 style="text-align:left; margin-top:22px;">Kayıtlar</h2>
+        <div id="kilo-listesi"></div>
+    </div>
+
+    <!-- 7. TAKVİYELER -->
+    <div id="takviye-ekrani" class="gizli">
+        <h1 style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><rect x="3.5" y="8.5" width="17" height="7" rx="3.5" transform="rotate(-45 12 12)"></rect><line x1="8.5" y1="8.5" x2="15.5" y2="15.5"></line></svg> Takviyeler <button type="button" class="ipucu-btn" onclick="ipucuGoster('takviye')" aria-label="Yardım">?</button></h1>
+        <button onclick="takviyeFormuAc()">Yeni Takviye Ekle (+)</button>
+        <h2 style="text-align:left; margin-top:20px;">Bugünkü Durum</h2>
+        <div id="takviye-bugun-listesi"></div>
+        <h2 style="text-align:left; margin-top:20px;">Tüm Takviyeler</h2>
+        <div id="takviye-tum-liste"></div>
+    </div>
+
+    <div id="takviye-form-ekrani" class="gizli kart">
+        <h2 id="takviye-form-baslik">Takviye Ekle/Düzenle</h2>
+        <input type="hidden" id="tk-id">
+        <label>Takviye Türü</label>
+        <select id="tk-tur">
+            <option value="B12">Vitamin B12</option>
+            <option value="D3">D3</option>
+            <option value="Magnezyum">Magnezyum</option>
+            <option value="Omega-3">Omega-3</option>
+            <option value="Kreatin">Kreatin</option>
+            <option value="Multivitamin">Multivitamin</option>
+            <option value="Demir">Demir</option>
+            <option value="Çinko">Çinko</option>
+            <option value="Diğer">Diğer</option>
+        </select>
+        <label>Doz (örn: 5 g, 500 mcg, 1000 IU)</label>
+        <input type="text" id="tk-doz" placeholder="Örn: 500 mcg">
+        <label>Hatırlatma Saati (opsiyonel)</label>
+        <input type="time" id="tk-saat">
+        <label>Kutu Boyutu — adet (opsiyonel, Stok uyarısı için)</label>
+        <input type="number" id="tk-kutu-boyutu" placeholder="Örn: 60">
+        <label>Kullanım Sıklığı</label>
+        <select id="tk-siklik-tip" onchange="takviyeSiklikAlanGuncelle()">
+            <option value="hergun">Her gün</option>
+            <option value="haftada_x">Haftada X gün</option>
+            <option value="belirli_gunler">Belirli günler</option>
+            <option value="x_gunde_bir">X günde bir</option>
+            <option value="ayda_x">Ayda X kez</option>
+        </select>
+        <div id="tk-haftada-alani" class="gizli">
+            <label>Haftada Kaç Gün</label>
+            <input type="number" id="tk-haftada-deger" placeholder="Örn: 2">
+        </div>
+        <div id="tk-belirli-alani" class="gizli">
+            <label>Hangi Günler</label>
+            <div class="buton-grubu" id="tk-gun-secim" style="flex-wrap:wrap;"></div>
+        </div>
+        <div id="tk-xgunde-alani" class="gizli">
+            <label>Kaç Günde Bir</label>
+            <input type="number" id="tk-xgunde-deger" placeholder="Örn: 10">
+        </div>
+        <div id="tk-ayda-alani" class="gizli">
+            <label>Ayda Kaç Kez</label>
+            <input type="number" id="tk-ayda-deger" placeholder="Örn: 4">
+        </div>
+        <button onclick="takviyeKaydet()">Kaydet</button>
+        <button class="btn-tehlike" onclick="sayfaGoster('takviye-ekrani')" style="width:100%; border-radius:50px; margin-top:10px;">İptal</button>
+    </div>
+
+    <!-- 8. ÖĞÜN ŞABLONLARI (Hazır Öğün / Tarif) -->
+    <div id="sablon-ekrani" class="gizli">
+        <h1 style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg> Öğün Şablonları <button type="button" class="ipucu-btn" onclick="ipucuGoster('sablon')" aria-label="Yardım">?</button></h1>
+        <button onclick="sablonFormuAc()">Yeni Şablon Oluştur (+)</button>
+        <div class="kategori-sekmeler" id="sablon-kategori-sekmeler"></div>
+        <div id="sablon-liste" style="margin-top:14px;"></div>
+    </div>
+
+    <div id="sablon-form-ekrani" class="gizli kart">
+        <h2 id="sablon-form-baslik">Şablon Oluştur</h2>
+        <label>Şablon Adı</label>
+        <input type="text" id="sb-ad" placeholder="Örn: Kahvaltım">
+        <label>Kategori</label>
+        <select id="sb-kategori">
+            <option value="kahvalti">🍳 Kahvaltı</option>
+            <option value="ogle">🥗 Öğle Yemeği</option>
+            <option value="aksam">🍽 Akşam</option>
+            <option value="antrenman">💪 Antrenman Sonrası</option>
+            <option value="kendi">📌 Kendi Öğünlerim</option>
+        </select>
+        <label>Kaç Porsiyon Çıkarıyor?</label>
+        <input type="number" id="sb-porsiyon-sayisi" placeholder="Örn: 4 (tarif için)" value="1">
+        <p class="form-not" style="margin-top:-10px;">1 bırakırsan tek porsiyonluk bir öğün gibi davranır. 4 girersen, tarifi bir kerede eklediğinde toplamı otomatik 4'e böleriz.</p>
+        <label>Besin Ekle</label>
+        <div style="position:relative; margin-bottom:14px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--yazi-pasif)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); pointer-events:none;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><input type="text" id="sb-arama" placeholder="Besin ara..." oninput="sablonBesinListele()" style="margin:0; padding-left:36px;"></div>
+        <div id="sb-besin-listesi" style="max-height:180px; overflow-y:auto; margin-bottom:10px;"></div>
+        <div class="buton-grubu">
+            <input type="number" id="sb-miktar" placeholder="Miktar">
+            <button class="btn-ikincil" style="margin-top:0;" onclick="sablonBesinEkle()">Ekle</button>
+        </div>
+        <h2 style="font-size:15px; margin-top:16px;">Şablon İçeriği</h2>
+        <div id="sb-icerik-listesi"></div>
+        <p id="sb-toplam" class="form-not"></p>
+        <button id="sablon-kaydet-btn" onclick="sablonKaydet()">Şablonu Kaydet</button>
+        <button class="btn-tehlike" onclick="sayfaGoster('sablon-ekrani')" style="width:100%; border-radius:50px; margin-top:10px;">İptal</button>
+    </div>
+
+    <!-- 9. DAHA FAZLA (araç merkezi) -->
+    <div id="daha-fazla-ekrani" class="gizli">
+        <h1>Daha Fazla</h1>
+        <p style="color:var(--yazi-pasif); font-size:14px; margin-top:-8px;">Araçlar, kayıtlar ve ayarlar.</p>
+        <button onclick="sayfaGoster('ayarlar-ekrani')" style="margin-top:14px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> Ayarlar</button>
+        <div style="margin-top:14px;">
+            <button class="btn-ikincil" onclick="sayfaGoster('kutuphane-ekrani')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle></svg> Besin Kütüphanesi</button>
+            <button class="btn-ikincil" onclick="sayfaGoster('sablon-ekrani')" style="margin-top:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg> Öğün Şablonları</button>
+            <button class="btn-ikincil" onclick="sayfaGoster('takviye-ekrani')" style="margin-top:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><rect x="3.5" y="8.5" width="17" height="7" rx="3.5" transform="rotate(-45 12 12)"></rect><line x1="8.5" y1="8.5" x2="15.5" y2="15.5"></line></svg> Takviyeler</button>
+            <button class="btn-ikincil" onclick="sayfaGoster('kilo-ekrani')" style="margin-top:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><line x1="12" y1="3" x2="12" y2="21"></line><path d="M5 7l-3 7a3.5 3.5 0 0 0 6 0L5 7z"></path><path d="M19 7l-3 7a3.5 3.5 0 0 0 6 0l-3-7z"></path><line x1="2" y1="21" x2="22" y2="21"></line><line x1="5" y1="7" x2="19" y2="7"></line></svg> Kilo Takibi</button>
+            <button class="btn-ikincil" onclick="egzersizKutuphaneAc(bugununTarihi, 'ana-ekran')" style="margin-top:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><rect x="2" y="9" width="3" height="6" rx="1"></rect><rect x="19" y="9" width="3" height="6" rx="1"></rect><line x1="7" y1="12" x2="17" y2="12"></line><rect x="5" y="7" width="2" height="10" rx="1"></rect><rect x="17" y="7" width="2" height="10" rx="1"></rect></svg> Egzersiz Kütüphanesi</button>
+            <button class="btn-ikincil" onclick="sayfaGoster('araclar-ekrani')" style="margin-top:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg> Araçlar</button>
+            <button class="btn-ikincil" onclick="tanitimAc()" style="margin-top:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg> Uygulama Turu</button>
+        </div>
+    </div>
+
+    <!-- FAZ 17 — Araçlar merkezi (bağımsız küçük yardımcı araçlar) -->
+    <div id="araclar-ekrani" class="gizli">
+        <h1><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg> Araçlar</h1>
+        <p style="color:var(--yazi-pasif); font-size:14px; margin-top:-8px;">Günlüğe kaydetmeden kullanabileceğin bağımsız küçük yardımcılar.</p>
+        <button class="btn-ikincil" onclick="sayfaGoster('birim-cevirici-ekrani')">📐 Birim Dönüştürücü</button>
+        <button class="btn-ikincil" onclick="sayfaGoster('sozluk-ekrani')" style="margin-top:8px;">📖 Sözlük</button>
+        <button class="btn-ikincil" onclick="sayfaGoster('besin-karsilastir-ekrani')" style="margin-top:8px;">⚖ Besin Karşılaştırma</button>
+        <button class="btn-ikincil" onclick="sayfaGoster('kalori-hesap-ekrani')" style="margin-top:8px;">🧮 Kalori Hesap Makinesi</button>
+        <button class="btn-ikincil" onclick="sayfaGoster('saglik-hesap-ekrani')" style="margin-top:8px;">🩺 Sağlık Hesaplayıcıları</button>
+        <button class="btn-ikincil" onclick="sayfaGoster('besin-oneri-ekrani')" style="margin-top:8px;">🍎 Besin Öner</button>
+        <button class="btn-ikincil" onclick="sayfaGoster('interval-ekrani')" style="margin-top:8px;">⏱ Interval Zamanlayıcı</button>
+        <button class="btn-ikincil" onclick="icecekGunluguAc(bugununTarihi)" style="margin-top:8px;">🥤 İçecek Günlüğü</button>
+        <button class="btn-ikincil" onclick="sayfaGoster('daha-fazla-ekrani')" style="margin-top:16px;">← Daha Fazla'ya Dön</button>
+    </div>
+
+    <!-- FAZ 17 — Birim Dönüştürücü: bağımsız, uygulamanın kendi birim sisteminden ayrı -->
+    <div id="birim-cevirici-ekrani" class="gizli">
+        <h1>📐 Birim Dönüştürücü</h1>
+        <p style="color:var(--yazi-pasif); font-size:14px; margin-top:-8px;">Herhangi bir alana kaydetmez, sadece hesaplar.</p>
+        <div class="kart">
+            <h2 style="text-align:left; font-size:15px;">Ağırlık</h2>
+            <div class="buton-grubu">
+                <input type="number" id="bc-kg" placeholder="kg" oninput="birimCeviriciHesapla('agirlik','kg')">
+                <input type="number" id="bc-lb" placeholder="lb" oninput="birimCeviriciHesapla('agirlik','lb')">
+            </div>
+            <div class="buton-grubu" style="margin-top:8px;">
+                <input type="number" id="bc-g" placeholder="gram" oninput="birimCeviriciHesapla('agirlik','g')">
+                <input type="number" id="bc-ons" placeholder="ons (oz)" oninput="birimCeviriciHesapla('agirlik','ons')">
+            </div>
+        </div>
+        <div class="kart">
+            <h2 style="text-align:left; font-size:15px;">Uzunluk</h2>
+            <div class="buton-grubu">
+                <input type="number" id="bc-cm" placeholder="cm" oninput="birimCeviriciHesapla('uzunluk','cm')">
+                <input type="number" id="bc-inc" placeholder="inç" oninput="birimCeviriciHesapla('uzunluk','inc')">
+            </div>
+        </div>
+        <div class="kart">
+            <h2 style="text-align:left; font-size:15px;">Hacim</h2>
+            <div class="buton-grubu">
+                <input type="number" id="bc-ml" placeholder="ml" oninput="birimCeviriciHesapla('hacim','ml')">
+                <input type="number" id="bc-bardak" placeholder="bardak (240ml)" oninput="birimCeviriciHesapla('hacim','bardak')">
+            </div>
+            <div class="buton-grubu" style="margin-top:8px;">
+                <input type="number" id="bc-flooz" placeholder="fl oz" oninput="birimCeviriciHesapla('hacim','flooz')">
+            </div>
+        </div>
+        <button class="btn-ikincil" onclick="sayfaGoster('araclar-ekrani')">← Araçlar'a Dön</button>
+    </div>
+
+    <!-- FAZ 17 — Mini Sözlük: SSS'den farklı, terim bazlı hızlı bakış -->
+    <div id="sozluk-ekrani" class="gizli">
+        <h1>📖 Sözlük</h1>
+        <p style="color:var(--yazi-pasif); font-size:14px; margin-top:-8px;">Uygulamada geçen terimlerin kısa açıklamaları.</p>
+        <details class="sss-oge">
+            <summary>Makro (Makro besin)</summary>
+            <p>Protein, yağ ve karbonhidratın ortak adı. Vücuda enerji sağlayan üç ana besin öğesidir; kalori bunların toplamından hesaplanır.</p>
+        </details>
+        <details class="sss-oge">
+            <summary>TDEE</summary>
+            <p>"Total Daily Energy Expenditure" — günlük toplam enerji harcaman. Bazal metabolizma + günlük hareket + egzersizin toplamıdır; hedef kalorin buna göre hesaplanır.</p>
+        </details>
+        <details class="sss-oge">
+            <summary>Kalibrasyon</summary>
+            <p>Gerçek kilo değişimine bakarak hesaplanan hedef kalorinin zamanla ince ayar yapılmasıdır. Tahmini TDEE ile gerçek sonuç uyuşmuyorsa Nutrio yeni bir kalori önerisi sunar.</p>
+        </details>
+        <details class="sss-oge">
+            <summary>BMR (Bazal Metabolizma Hızı)</summary>
+            <p>Vücudunun tam dinlenme halinde (hiçbir aktivite yapmadan) harcadığı enerjidir. TDEE hesabının başlangıç noktasıdır.</p>
+        </details>
+        <details class="sss-oge">
+            <summary>Hedefe Uyum</summary>
+            <p>O günkü alınan kalorinin, hedef kaloriye ne kadar yakın olduğunun yüzdesi.</p>
+        </details>
+        <details class="sss-oge">
+            <summary>Özel Gün</summary>
+            <p>İşaretlediğinde o günün verisi silinmez ama Trend/Analiz/Haftalık Karşılaştırma ortalamalarına dahil edilmez — misafirlik, tatil gibi istisnai günler için.</p>
+        </details>
+        <button class="btn-ikincil" onclick="sayfaGoster('araclar-ekrani')">← Araçlar'a Dön</button>
+    </div>
+
+    <!-- FAZ 17 — Besin Karşılaştırma -->
+    <div id="besin-karsilastir-ekrani" class="gizli">
+        <h1>⚖ Besin Karşılaştırma</h1>
+        <p style="color:var(--yazi-pasif); font-size:14px; margin-top:-8px;">İki besini yan yana karşılaştır.</p>
+        <input type="text" id="bk-arama-1" placeholder="1. besin ara..." oninput="besinKarsilastirAra(1)">
+        <div id="bk-liste-1" style="max-height:140px; overflow-y:auto; margin-bottom:10px;"></div>
+        <input type="text" id="bk-arama-2" placeholder="2. besin ara..." oninput="besinKarsilastirAra(2)">
+        <div id="bk-liste-2" style="max-height:140px; overflow-y:auto; margin-bottom:10px;"></div>
+        <div id="bk-sonuc"></div>
+        <button class="btn-ikincil" onclick="sayfaGoster('araclar-ekrani')" style="margin-top:10px;">← Araçlar'a Dön</button>
+    </div>
+
+    <!-- FAZ 17 — Bağımsız kalori hesap makinesi (günlüğe kaydetmez) -->
+    <div id="kalori-hesap-ekrani" class="gizli">
+        <h1>🧮 Kalori Hesap Makinesi</h1>
+        <p style="color:var(--yazi-pasif); font-size:14px; margin-top:-8px;">Günlüğe eklemeden, tek seferlik toplam hesapla.</p>
+        <input type="text" id="kh-arama" placeholder="Besin ara..." oninput="kaloriHesapAra()">
+        <div id="kh-arama-listesi" style="max-height:160px; overflow-y:auto; margin:8px 0;"></div>
+        <div class="buton-grubu">
+            <input type="number" id="kh-miktar" placeholder="Miktar">
+            <button class="btn-ikincil" style="margin-top:0;" onclick="kaloriHesapEkle()">Ekle</button>
+        </div>
+        <div id="kh-sepet" style="margin-top:10px;"></div>
+        <p id="kh-toplam" class="form-not" style="font-size:15px; font-weight:800;"></p>
+        <button class="btn-ikincil" onclick="kaloriHesapTemizle()">Temizle</button>
+        <button class="btn-ikincil" onclick="sayfaGoster('araclar-ekrani')" style="margin-top:8px;">← Araçlar'a Dön</button>
+    </div>
+
+    <!-- FAZ 17 — Sağlık Hesaplayıcıları (VKİ, bel-kalça oranı) -->
+    <div id="saglik-hesap-ekrani" class="gizli">
+        <h1>🩺 Sağlık Hesaplayıcıları</h1>
+        <p style="color:var(--yazi-pasif); font-size:14px; margin-top:-8px;">Bilgi amaçlıdır, tıbbi tavsiye değildir.</p>
+        <div class="kart">
+            <h2 style="text-align:left; font-size:15px;">VKİ (Vücut Kitle İndeksi)</h2>
+            <div class="buton-grubu">
+                <input type="number" id="sh-vki-kilo" placeholder="Kilo (kg)" oninput="vkiHesapla()">
+                <input type="number" id="sh-vki-boy" placeholder="Boy (cm)" oninput="vkiHesapla()">
+            </div>
+            <p id="sh-vki-sonuc" class="form-not"></p>
+        </div>
+        <div class="kart">
+            <h2 style="text-align:left; font-size:15px;">Bel-Kalça Oranı</h2>
+            <div class="buton-grubu">
+                <input type="number" id="sh-bk-bel" placeholder="Bel (cm)" oninput="belKalcaHesapla()">
+                <input type="number" id="sh-bk-kalca" placeholder="Kalça (cm)" oninput="belKalcaHesapla()">
+            </div>
+            <p id="sh-bk-sonuc" class="form-not"></p>
+        </div>
+        <button class="btn-ikincil" onclick="sayfaGoster('araclar-ekrani')">← Araçlar'a Dön</button>
+    </div>
+
+    <!-- FAZ 17 — Besin kütüphanesine katkı/öneri formu (Hata Bildir ile aynı desen) -->
+    <div id="besin-oneri-ekrani" class="gizli">
+        <h1>🍎 Besin Öner</h1>
+        <p style="color:var(--yazi-pasif); font-size:14px; margin-top:-8px;">Kütüphanede eksik gördüğün bir besni kısaca yaz, panoya kopyalanır.</p>
+        <textarea id="besin-oneri-metin" rows="4" placeholder="Örn: Kinoa eksik, 100g için yaklaşık 120 kcal, 4g protein..."></textarea>
+        <button class="btn-ikincil" onclick="besinOneriKopyala()" style="margin-top:10px;">📋 Panoya Kopyala</button>
+        <button class="btn-ikincil" onclick="sayfaGoster('araclar-ekrani')" style="margin-top:8px;">← Araçlar'a Dön</button>
+    </div>
+
+    <!-- FAZ 17 — Interval/HIIT zamanlayici (egzersiz modulunden bagimsiz kucuk arac) -->
+    <div id="interval-ekrani" class="gizli">
+        <h1>⏱ Interval Zamanlayıcı</h1>
+        <p style="color:var(--yazi-pasif); font-size:14px; margin-top:-8px;">Basit bir çalışma/dinlenme döngüsü, hiçbir yere kaydedilmez.</p>
+        <div class="kart" id="interval-ayar-karti">
+            <label>Çalışma Süresi (sn)</label>
+            <input type="number" id="iv-calisma" value="30">
+            <label>Dinlenme Süresi (sn)</label>
+            <input type="number" id="iv-dinlenme" value="15">
+            <label>Tur Sayısı</label>
+            <input type="number" id="iv-tur" value="8">
+            <button onclick="intervalBaslat()" style="margin-top:10px;">▶ Başlat</button>
+        </div>
+        <div class="kart gizli" id="interval-calisma-karti" style="text-align:center;">
+            <p id="iv-faz-yazi" style="font-size:16px; font-weight:800; color:var(--vurgu-renk);"></p>
+            <p id="iv-sayac-yazi" style="font-size:48px; font-weight:800; font-family:var(--font-baslik); margin:6px 0;"></p>
+            <p id="iv-tur-yazi" class="form-not"></p>
+            <div class="buton-grubu" style="justify-content:center;">
+                <button class="btn-ikincil" onclick="intervalDuraklat()" id="iv-duraklat-btn">⏸ Duraklat</button>
+                <button class="btn-tehlike" onclick="intervalDurdur()">⏹ Durdur</button>
+            </div>
+        </div>
+        <button class="btn-ikincil" onclick="sayfaGoster('araclar-ekrani')" style="margin-top:14px;">← Araçlar'a Dön</button>
+    </div>
+
+    <!-- FAZ 17 — Egzersiz Kütüphanesi: besin kütüphanesinin egzersiz karşılığı -->
+    <div id="egzersiz-kutuphane-ekrani" class="gizli">
+        <h1><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><rect x="2" y="9" width="3" height="6" rx="1"></rect><rect x="19" y="9" width="3" height="6" rx="1"></rect><line x1="7" y1="12" x2="17" y2="12"></line><rect x="5" y="7" width="2" height="10" rx="1"></rect><rect x="17" y="7" width="2" height="10" rx="1"></rect></svg> Egzersiz Kütüphanesi</h1>
+        <p style="color:var(--yazi-pasif); font-size:14px; margin-top:-8px;">Bir hareket seç, süre gir, günlüğe eklensin.</p>
+        <input type="text" id="ek-arama" placeholder="Hareket ara..." oninput="egzersizKutuphaneListele()">
+        <div class="kategori-sekmeler" id="ek-ust-sekmeler" style="margin-top:8px;">
+            <button class="sekme-btn aktif" onclick="egzersizUstKategoriSec('tumu', this)">Tümü</button>
+            <button class="sekme-btn" onclick="egzersizUstKategoriSec('gym', this)">Gym</button>
+            <button class="sekme-btn" onclick="egzersizUstKategoriSec('Kardiyo', this)">Kardiyo</button>
+            <button class="sekme-btn" onclick="egzersizUstKategoriSec('Spor', this)">Spor</button>
+            <button class="sekme-btn" onclick="egzersizUstKategoriSec('Esneklik', this)">Esneklik</button>
+        </div>
+        <div class="kategori-sekmeler gizli" id="ek-alt-sekmeler" style="margin-top:6px;">
+            <button class="sekme-btn aktif" onclick="egzersizAltGrupSec('', this)">Tüm Kas Gruplarım</button>
+            <button class="sekme-btn" onclick="egzersizAltGrupSec('Göğüs', this)">Göğüs</button>
+            <button class="sekme-btn" onclick="egzersizAltGrupSec('Sırt', this)">Sırt</button>
+            <button class="sekme-btn" onclick="egzersizAltGrupSec('Bacak', this)">Bacak</button>
+            <button class="sekme-btn" onclick="egzersizAltGrupSec('Omuz', this)">Omuz</button>
+            <button class="sekme-btn" onclick="egzersizAltGrupSec('Kol', this)">Kol</button>
+            <button class="sekme-btn" onclick="egzersizAltGrupSec('Karın', this)">Karın</button>
+        </div>
+        <div id="ek-liste" style="max-height:280px; overflow-y:auto; margin-top:10px;"></div>
+        <div class="kart gizli" id="ek-ekle-karti">
+            <h2 id="ek-secili-ad" style="text-align:left; font-size:15px;"></h2>
+            <label>Süre (dakika)</label>
+            <input type="number" id="ek-sure">
+            <label>Set x Tekrar (opsiyonel not)</label>
+            <input type="text" id="ek-not" placeholder="Örn: 3x12">
+            <button onclick="egzersizKutuphaneEkle()" style="margin-top:10px;">Günlüğe Ekle</button>
+        </div>
+        <button class="btn-ikincil" onclick="egzersizKutuphaneGeriDon()" style="margin-top:14px;">← Geri</button>
+    </div>
+
+    <!-- FAZ 17 — İçecek Günlüğü: su takibinin genişletilmiş hali (çay/kahve/gazlı + kafein) -->
+    <div id="icecek-gunlugu-ekrani" class="gizli">
+        <h1>🥤 İçecek Günlüğü</h1>
+        <p style="color:var(--yazi-pasif); font-size:14px; margin-top:-8px;">Su dışındaki içecekleri kaydet, kafein toplamı otomatik hesaplansın.</p>
+        <div class="kart">
+            <select id="ig-tur">
+                <option value="cay">Çay</option>
+                <option value="kahve_filtre">Kahve (filtre)</option>
+                <option value="kahve_espresso">Kahve (espresso)</option>
+                <option value="enerji">Enerji İçeceği</option>
+                <option value="gazli">Gazlı İçecek</option>
+                <option value="diger">Diğer</option>
+            </select>
+            <div class="buton-grubu">
+                <input type="number" id="ig-miktar" placeholder="Miktar (ml)">
+                <button style="margin-top:0;" onclick="icecekEkle()">Ekle</button>
+            </div>
+        </div>
+        <div class="kart">
+            <h2 style="text-align:left; font-size:15px;">Bugün</h2>
+            <div id="ig-liste"></div>
+            <p id="ig-ozet" class="form-not" style="font-weight:800;"></p>
+        </div>
+        <button class="btn-ikincil" onclick="sayfaGoster('ana-ekran')">← Ana Ekrana Dön</button>
+    </div>
+
+    <!-- FAZ 17 — Bildirim/Aktivite Merkezi: kalıcı bildirim geçmişi -->
+    <div id="bildirim-merkezi-ekrani" class="gizli">
+        <h1>📜 Bildirim Geçmişi</h1>
+        <p style="color:var(--yazi-pasif); font-size:14px; margin-top:-8px;">Uygulamanın gönderdiği bildirimlerin kalıcı listesi (en fazla son 50).</p>
+        <div id="bm-liste"></div>
+        <button class="btn-ikincil" onclick="bildirimGecmisiTemizle()" style="margin-top:12px;">Geçmişi Temizle</button>
+        <button class="btn-ikincil" onclick="sayfaGoster('ayarlar-ekrani')" style="margin-top:8px;">← Ayarlara Dön</button>
+    </div>
+
+    <!-- FAZ 17 — Tanıtım/özellikler turu: her bölümün kısa tanıtımı, istendiğinde açılır -->
+    <!-- FAZ 17 — Tanıtım/özellikler turu: her ekranın kendi ikonuyla tanıtımı -->
+    <div id="tanitim-ekrani" class="gizli">
+        <div class="ob-ic">
+            <div id="tn-adim-0" class="ob-adim">
+                <div class="ob-ikon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--vurgu-renk)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7"></path><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"></path></svg></div>
+                <h1>Ana Ekran</h1>
+                <p>Günün özeti burada: skor paneli, su, bugünkü aktivite ve öğünlerin. Bugün için planlı bir öğün veya antrenman varsa küçük bir kart olarak da burada çıkar. Kart sırasını Ayarlar’dan kendine göre düzenleyebilirsin.</p>
+            </div>
+            <div id="tn-adim-1" class="ob-adim gizli">
+                <div class="ob-ikon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--vurgu-renk)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>
+                <h1>Besin Ekle</h1>
+                <p>Toleranslı arama (yazım hatası da bulur), sepetle tek seferde birden fazla besin ekleme, kaloriye/proteine göre sıralama ve en son aramalarına hızlı erişim.</p>
+            </div>
+            <div id="tn-adim-2" class="ob-adim gizli">
+                <div class="ob-ikon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--vurgu-renk)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></div>
+                <h1>Gün Detayı</h1>
+                <p>Herhangi bir güne geri dönüp o günün besin, su, egzersiz, takviye ve kilo kayıtlarını görebilir, hepsini düzenleyebilir veya silebilirsin.</p>
+            </div>
+            <div id="tn-adim-3" class="ob-adim gizli">
+                <div class="ob-ikon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--vurgu-renk)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg></div>
+                <h1>İlerleme</h1>
+                <p>Genel/Trend/Analiz sekmeleriyle geçmişini, kalori-kilo trendini ve kişisel örüntülerini (en sık yediklerin, hedef tutturma oranın) inceleyebilirsin.</p>
+            </div>
+            <div id="tn-adim-4" class="ob-adim gizli">
+                <div class="ob-ikon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--vurgu-renk)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></div>
+                <h1>Plan — Beslenme</h1>
+                <p>Bugünden itibaren 7 günlük öğün planı oluştur. Planladığın gün geldiğinde Ana ekranda kart olarak çıkar, tek dokunuşla günlüğüne eklenir.</p>
+            </div>
+            <div id="tn-adim-5" class="ob-adim gizli">
+                <div class="ob-ikon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--vurgu-renk)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg></div>
+                <h1>Plan — Market</h1>
+                <p>Beslenme planından otomatik çıkan alışveriş listesi. Aldığın maddeyi işaretle, dilersen fiyatını gir — haftalık harcama trendini görürsün.</p>
+            </div>
+            <div id="tn-adim-6" class="ob-adim gizli">
+                <div class="ob-ikon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--vurgu-renk)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8L12 3 3 8l9 5 9-5z"></path><path d="M3 8v8l9 5 9-5V8"></path><path d="M12 13v8"></path></svg></div>
+                <h1>Plan — Stok</h1>
+                <p>Market’te işaretlediğin ürünler otomatik burada birikir. Son kullanma tarihi ekleyip yaklaşınca hatırlatma alabilirsin.</p>
+            </div>
+            <div id="tn-adim-7" class="ob-adim gizli">
+                <div class="ob-ikon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--vurgu-renk)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="3" height="6" rx="1"></rect><rect x="19" y="9" width="3" height="6" rx="1"></rect><line x1="7" y1="12" x2="17" y2="12"></line><rect x="5" y="7" width="2" height="10" rx="1"></rect><rect x="17" y="7" width="2" height="10" rx="1"></rect></svg></div>
+                <h1>Plan — Antrenman</h1>
+                <p>Egzersiz Kütüphanesi’nden hareket seçip haftalık bir antrenman programı oluştur. Planlı gün geldiğinde Ana ekrandan "Yaptım" diyerek günlüğüne işleyebilirsin.</p>
+            </div>
+            <div id="tn-adim-8" class="ob-adim gizli">
+                <div class="ob-ikon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--vurgu-renk)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="3" height="6" rx="1"></rect><rect x="19" y="9" width="3" height="6" rx="1"></rect><line x1="7" y1="12" x2="17" y2="12"></line><rect x="5" y="7" width="2" height="10" rx="1"></rect><rect x="17" y="7" width="2" height="10" rx="1"></rect></svg></div>
+                <h1>Egzersiz Kütüphanesi</h1>
+                <p>Göğüsten bacağa, kardiyodan esnekliğe onlarca hazır hareket; her biri kendi enerji harcamasıyla (MET) hesaplanır. Süreni gir, günlüğüne veya antrenman planına ekle.</p>
+            </div>
+            <div id="tn-adim-9" class="ob-adim gizli">
+                <div class="ob-ikon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--vurgu-renk)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="3" x2="12" y2="21"></line><path d="M5 7l-3 7a3.5 3.5 0 0 0 6 0L5 7z"></path><path d="M19 7l-3 7a3.5 3.5 0 0 0 6 0l-3-7z"></path><line x1="2" y1="21" x2="22" y2="21"></line><line x1="5" y1="7" x2="19" y2="7"></line></svg></div>
+                <h1>Kilo Takibi</h1>
+                <p>Kilonu, vücut ölçülerini kaydet; grafiğini ve haftalık değişim hızını gör. Gerçek verine göre Nutrio zaman zaman kalori hedefini otomatik ince ayar önerir.</p>
+            </div>
+            <div id="tn-adim-10" class="ob-adim gizli">
+                <div class="ob-ikon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--vurgu-renk)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.7s6.5 7 6.5 11.3a6.5 6.5 0 0 1-13 0C5.5 9.7 12 2.7 12 2.7z"></path></svg></div>
+                <h1>İçecek Günlüğü</h1>
+                <p>Su dışında çay, kahve, enerji içeceği gibi sıvıları da kaydet; toplam sıvı alımını ve kafein miktarını otomatik gör.</p>
+            </div>
+            <div id="tn-adim-11" class="ob-adim gizli">
+                <div class="ob-ikon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--vurgu-renk)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="8.5" width="17" height="7" rx="3.5" transform="rotate(-45 12 12)"></rect><line x1="8.5" y1="8.5" x2="15.5" y2="15.5"></line></svg></div>
+                <h1>Takviyeler</h1>
+                <p>Aldığın takviyeleri sıklıklarına göre planla, günlük durumunu işaretle, hatırlatma saati kur.</p>
+            </div>
+            <div id="tn-adim-12" class="ob-adim gizli">
+                <div class="ob-ikon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--vurgu-renk)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg></div>
+                <h1>Öğün Şablonları</h1>
+                <p>Sık yediğin öğünleri kaydet, tek dokunuşla ekle. "Her gün otomatik ekle" dersen senin için her gün sessizce günlüğüne işlenir.</p>
+            </div>
+            <div id="tn-adim-13" class="ob-adim gizli">
+                <div class="ob-ikon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--vurgu-renk)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg></div>
+                <h1>Araçlar</h1>
+                <p>Birim dönüştürücü, kalori hesap makinesi, besin karşılaştırma, sağlık hesaplayıcıları, sözlük ve interval zamanlayıcı — hepsi günlüğe kaydetmeden kullanabileceğin küçük yardımcılar.</p>
+            </div>
+            <div id="tn-adim-14" class="ob-adim gizli">
+                <div class="ob-ikon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--vurgu-renk)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></div>
+                <h1>Ayarlar & Tema</h1>
+                <p>6 tema (açık dahil), profil avatarın, birim sistemi, bildirimler ve verilerinin yedeklenmesi burada. Unutma: her şey sadece bu cihazda saklanır.</p>
+            </div>
+
+            <div class="ob-noktalar" id="tn-noktalar">
+                <span class="ob-nokta aktif"></span><span class="ob-nokta"></span><span class="ob-nokta"></span><span class="ob-nokta"></span><span class="ob-nokta"></span><span class="ob-nokta"></span><span class="ob-nokta"></span><span class="ob-nokta"></span><span class="ob-nokta"></span><span class="ob-nokta"></span><span class="ob-nokta"></span><span class="ob-nokta"></span><span class="ob-nokta"></span><span class="ob-nokta"></span><span class="ob-nokta"></span>
+            </div>
+
+            <button id="tn-ileri-btn" onclick="tanitimIleri()">İleri</button>
+            <button class="btn-ikincil" onclick="tanitimGeri()" id="tn-geri-btn" style="margin-top:10px;">Geri</button>
+            <button class="btn-ikincil ob-atla" onclick="tanitimKapat()">Kapat</button>
+        </div>
+    </div>
+
+    <!-- FAZ 17 — Otomatik Yedek Geçmişi: çoklu sürüm listesi + Geri Yükle -->
+    <div id="otomatik-yedek-ekrani" class="gizli">
+        <h1>🗄 Otomatik Yedek Geçmişi</h1>
+        <p style="color:var(--yazi-pasif); font-size:14px; margin-top:-8px;">Son 10 otomatik/manuel yerel yedek (IndexedDB). Elle dışa aktarmanın yerine geçmez.</p>
+        <button onclick="otomatikYedekSimdiAl()">Şimdi Yedekle</button>
+        <div id="oy-liste" style="margin-top:14px;"></div>
+        <button class="btn-ikincil" onclick="sayfaGoster('ayarlar-ekrani')" style="margin-top:14px;">← Ayarlara Dön</button>
+    </div>
+
+    <!-- 10. AYARLAR — tema, profil, veri yönetimi, uygulama bilgisi -->
+    <div id="ayarlar-ekrani" class="gizli">
+        <h1 style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> Ayarlar <button type="button" class="ipucu-btn" onclick="ipucuGoster('ayarlar')" aria-label="Yardım">?</button></h1>
+
+        <div class="kart">
+            <h2 style="text-align:left; font-size:15px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Profiller</h2>
+            <div class="buton-grubu">
+                <button class="btn-ikincil" onclick="profilDuzenleAc()">Profili Düzenle</button>
+                <button class="btn-ikincil" onclick="yeniProfilFormu()">+ Yeni Kişi</button>
+            </div>
+            <p class="form-not" style="margin-top:10px;">Her profilin kendi günlüğü, geçmişi, kilo ve takviye kayıtları tutulur.</p>
+        </div>
+
+        <div class="kart">
+            <h2 style="text-align:left; font-size:15px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><circle cx="12" cy="12" r="9"></circle><path d="M12 3a9 9 0 0 0 0 18c1.5 0 2-1 2-2s-1-1.5-1-2.5 1-1.5 2.5-1.5H18a4 4 0 0 0 3-4c0-5-4-8-9-8z"></path><circle cx="7.5" cy="11.5" r="1"></circle><circle cx="12" cy="7.5" r="1"></circle><circle cx="16.5" cy="11.5" r="1"></circle></svg> Tema</h2>
+            <p class="form-not" style="margin-top:0;">Uygulamanın genel görünümünü değiştirir: arka plan, kartlar, yazı renkleri ve vurgu. Seçim tarayıcında saklanır.</p>
+            <div class="tema-secim-liste" id="tema-secici-ayarlar"></div>
+        </div>
+
+        <!-- FAZ 11 — Ana ekran kart sırası (Skor / Aktivite / Su / Öğünler; diğer kartlar sabit) -->
+        <div class="kart">
+            <h2 style="text-align:left; font-size:15px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><polyline points="8 7 12 3 16 7"></polyline><line x1="12" y1="3" x2="12" y2="21"></line><polyline points="16 17 12 21 8 17"></polyline></svg> Ana Ekran Kart Sırası</h2>
+            <p class="form-not" style="margin-top:0;">Skor, Aktivite, Su ve Öğünler kartlarının ana ekrandaki dizilişini değiştir. Diğer kartlar yerinde kalır.</p>
+            <div id="kart-sira-liste"></div>
+        </div>
+
+        <!-- Faz 12 — Birim sistemi: depolama her zaman metrik, imperial sadece giriş/gösterimde -->
+        <div class="kart">
+            <h2 style="text-align:left; font-size:15px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><rect x="2" y="9" width="20" height="6" rx="1" transform="rotate(-45 12 12)"></rect><line x1="8.5" y1="9.5" x2="10" y2="8"></line><line x1="11.5" y1="12.5" x2="13" y2="11"></line><line x1="14.5" y1="15.5" x2="16" y2="14"></line></svg> Birim Sistemi</h2>
+            <p class="form-not" style="margin-top:0;">Kilo, boy, ölçüm ve su değerleri hangi birimle girilsin/görünsün? Kayıtlar her zaman metrik saklanır; imperial seçersen giriş ve ekranlar otomatik çevrilir.</p>
+            <div class="kategori-sekmeler" style="margin-bottom:0;">
+                <button class="sekme-btn" id="birim-sekme-metrik" onclick="birimSistemiSec('metrik')">Metrik (kg · cm · ml)</button>
+                <button class="sekme-btn" id="birim-sekme-imperial" onclick="birimSistemiSec('imperial')">Imperial (lb · inç · fl oz)</button>
+            </div>
+        </div>
+
+        <div class="kart">
+            <h2 style="text-align:left; font-size:15px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg> Bildirimler</h2>
+            <p class="form-not" style="margin-top:0;">Nutrio sunucusuz bir PWA olduğu için bildirimler yalnızca uygulama/sekme açıkken çalışır; uygulama kapalıyken bildirim garanti edilemez (özellikle iOS Safari’de).</p>
+            <div class="mini-satir"><span>İzin durumu</span><span id="bildirim-izin-durum" class="hedef-yazi" style="margin-top:0;">İzin bekliyor</span></div>
+            <button class="btn-ikincil" id="bildirim-izin-btn" onclick="bildirimIzinIste()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg> İzin Ver</button>
+            <label style="display:flex; align-items:center; gap:10px; margin-top:12px; font-size:14px; font-weight:700; cursor:pointer;">
+                <input type="checkbox" id="su-hatirlatici-checkbox" onchange="suHatirlaticiDegisti(this)" style="width:20px; height:20px; margin:0; flex:0 0 auto; accent-color:var(--vurgu-renk);">
+                Su hatırlatıcısı (uygulama açıkken)
+            </label>
+            <label style="display:flex; align-items:center; gap:10px; margin-top:12px; font-size:14px; font-weight:700; cursor:pointer;">
+                <input type="checkbox" id="kayit-hatirlatici-checkbox" onchange="kayitHatirlaticiDegisti(this)" style="width:20px; height:20px; margin:0; flex:0 0 auto; accent-color:var(--vurgu-renk);">
+                Kayıt hatırlatıcısı (akşam boş gün uyarısı)
+            </label>
+            <label style="display:flex; align-items:center; gap:10px; margin-top:12px; font-size:14px; font-weight:700; cursor:pointer;">
+                <input type="checkbox" id="takviye-hatirlatici-checkbox" onchange="takviyeHatirlaticiDegisti(this)" style="width:20px; height:20px; margin:0; flex:0 0 auto; accent-color:var(--vurgu-renk);">
+                Takviye saati hatırlatıcısı
+            </label>
+            <label style="display:flex; align-items:center; gap:10px; margin-top:12px; font-size:14px; font-weight:700; cursor:pointer;">
+                <input type="checkbox" id="kilo-hatirlatici-checkbox" onchange="kiloHatirlaticiDegisti(this)" style="width:20px; height:20px; margin:0; flex:0 0 auto; accent-color:var(--vurgu-renk);">
+                Kilo hatırlatıcısı
+            </label>
+            <select id="kilo-hatirlatma-gunu" onchange="kiloHatirlatmaGunuDegisti(this)" style="margin-top:8px; max-width:220px;"></select>
+            <div class="mini-satir" style="margin-top:10px;"><span>🏋️ Antrenman gününde su hedefi +500 ml</span><input type="checkbox" id="su-antrenman-artis-checkbox" onchange="suAntrenmanArtisDegisti(this)" style="width:20px; height:20px; margin:0; flex:0 0 auto; accent-color:var(--vurgu-renk);"></div>
+            <button class="btn-ikincil" onclick="sayfaGoster('bildirim-merkezi-ekrani')" style="margin-top:12px;">📜 Bildirim Geçmişini Gör</button>
+        </div>
+
+        <!-- FAZ 17 — Uygulama Bilgisi: kurulum (PWA) durumu da buraya taşındı, ayrı kart kaldırıldı -->
+        <div class="kart">
+            <h2 style="text-align:left; font-size:15px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg> Uygulama Bilgisi</h2>
+            <div class="mini-satir"><span>Uygulama</span><span>Nutrio 3.0</span></div>
+            <div class="mini-satir"><span>Tür</span><span>Çevrimdışı çalışabilen PWA</span></div>
+            <div class="mini-satir"><span>Veri saklama</span><span>Tarayıcı (localStorage)</span></div>
+            <div class="mini-satir"><span>Sunucu bağlantısı</span><span>Yok — veriler cihazında</span></div>
+            <p class="form-not" style="margin-top:12px;">Nutrio tamamen tarayıcında çalışır; besin kütüphanen, kayıtların ve ayarların hiçbiri hiçbir sunucuya gönderilmez.</p>
+            <p class="form-not" id="pwa-kurulum-bilgi" style="margin-top:12px;"></p>
+            <button class="btn-ikincil gizli" id="pwa-kur-btn" onclick="pwaKur()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg> Nutrio'yu Yükle</button>
+        </div>
+
+        <button class="btn-ikincil" onclick="sayfaGoster('sss-ekrani')" style="margin-bottom:14px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Nasıl Çalışır / SSS</button>
+        <button class="btn-ikincil" onclick="sayfaGoster('yenilikler-ekrani')" style="margin-bottom:14px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><path d="M12 2l2.4 5.4L20 8l-4 4 1 6-5-2.8L7 18l1-6-4-4 5.6-.6L12 2z"></path></svg> Yenilikler</button>
+
+        <!-- FAZ 11 — Hata Bildir: kullanıcının yazdığı açıklama + teknik bağlam; kullanıcı verisi KOPYALANMAZ -->
+        <div class="kart">
+            <h2 style="text-align:left; font-size:15px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><path d="M14.7 6.3a4.5 4.5 0 0 0-6.4 6.4l-5.3 5.3 2 2 1.4-1.4 1.4 1.4 2-2-1.4-1.4 1.9-1.9a4.5 4.5 0 0 0 6.4-6.4l-2.6 2.6-2-2 2.6-2.6z"></path></svg> Hata Bildir</h2>
+            <p class="form-not" style="margin-top:0;">Sorunu kısaca açıkla, "Panoya Kopyala" ile raporu kopyala ve bir hata kaydına yapıştır. Kişisel verilerin (kayıtlar, profiller) rapora eklenmez.</p>
+            <textarea id="hata-bildir-metin" rows="4" placeholder="Örn: Su ekledikten sonra sayaç güncellenmiyor..."></textarea>
+            <button class="btn-ikincil" onclick="hataBildirKopyala()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg> Panoya Kopyala</button>
+        </div>
+
+        <!-- FAZ 17 — Veri Yönetimi (eski adı "Veri Yedekleme"): yedekleme + sıfırlama TEK kartta -->
+        <div class="kart">
+            <h2 style="text-align:left; font-size:15px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><path d="M20 6L9 17l-5-5"></path><polyline points="15 5 20 5 20 10"></polyline><path d="M4 18h11"></path></svg> Veri Yönetimi</h2>
+            <p class="form-not" style="margin-top:0;">Verilerin şu an bu tarayıcıda saklanıyor. Cihaz değişirse veya tarayıcı verisi silinirse kaybolabilir — düzenli olarak dışa aktarmanı öneririz.</p>
+            <div id="depolama-durum-alan"></div>
+            <button onclick="veriDisaAktar()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg> Verileri Dışa Aktar (JSON)</button>
+            <button class="btn-ikincil" onclick="document.getElementById('veri-ice-aktar-input').click()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg> Verileri İçe Aktar (JSON)</button>
+            <button class="btn-ikincil" onclick="veriPaylas()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg> Paylaş</button>
+            <input type="file" id="veri-ice-aktar-input" accept="application/json" class="gizli" onchange="veriIceAktar(event)">
+            <p class="form-not" id="otomatik-yedek-tarih-alan" style="margin-top:10px;"></p>
+            <button class="btn-ikincil" onclick="sayfaGoster('otomatik-yedek-ekrani')" style="margin-top:8px;">🗄 Otomatik Yedek Geçmişi</button>
+            <div style="border-top:1px solid var(--kenar); margin:18px 0 14px;"></div>
+            <h2 style="text-align:left; font-size:14px; color:#ff8a8a;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Veri Sıfırlama</h2>
+            <p class="form-not" style="margin-top:0;">Bu işlem tüm profilleri, besin kütüphaneni, geçmişini ve ayarlarını kalıcı olarak siler. Geri alınamaz — önce dışa aktarmanı öneririz.</p>
+            <button class="btn-tehlike" style="width:100%;" onclick="veriSifirlaBaslat()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Tüm Verileri Sil</button>
+        </div>
+
+        <button class="btn-ikincil" onclick="sayfaGoster('daha-fazla-ekrani')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> Daha Fazla'ya Dön</button>
+    </div>
+
+
+    <!-- 5b. GÜN DETAY — tam ekran gün görünümü, önceki/sonraki gezinme ile -->
+    <div id="gun-detay-ekrani" class="gizli">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <h1 id="gun-detay-baslik" style="margin-bottom:6px;">Gün Detayı</h1>
+                <div id="gun-detay-ozel-gun-alan" style="display:flex; align-items:center; gap:8px;"></div>
+            </div>
+            <input type="date" id="gun-detay-tarih-sec" onchange="gunDetayTarihSec(this.value)" style="max-width:170px; margin-bottom:0;">
+        </div>
+        <div class="buton-grubu" style="margin-bottom:16px;">
+            <button class="btn-ikincil btn-kucuk" onclick="gunDetayGezin(-1)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> Önceki Gün</button>
+            <button class="btn-ikincil btn-kucuk" onclick="gunDetayAc(bugununTarihi)">Bugün</button>
+            <button class="btn-ikincil btn-kucuk" onclick="gunDetayGezin(1)">Sonraki Gün <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></button>
+        </div>
+
+        <div class="kart">
+            <div class="skor-paneli">
+                <div class="skor-kutu"><strong id="gd-kalori">0</strong><span>Kalori</span><span class="hedef-yazi" id="gd-hedef-kalori">Hedef: 0</span></div>
+                <div class="skor-kutu"><strong id="gd-protein">0</strong><span>Protein</span><span class="hedef-yazi" id="gd-hedef-protein">Hedef: 0g</span></div>
+                <div class="skor-kutu"><strong id="gd-yag">0</strong><span>Yağ</span><span class="hedef-yazi" id="gd-hedef-yag">Hedef: 0g</span></div>
+                <div class="skor-kutu"><strong id="gd-karb">0</strong><span>Karbonhidrat</span><span class="hedef-yazi" id="gd-hedef-karb">Hedef: 0g</span></div>
+            </div>
+            <div class="ilerleme-yolu" style="margin-top:12px;"><div class="ilerleme-cubuk" id="gd-ilerleme-kalori" style="width:0%;"></div></div>
+            <span class="hedef-yazi" id="gd-uyum" style="margin-top:6px;"></span>
+        </div>
+
+        <div class="kart kart-kompakt">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h2 style="text-align:left; font-size:15px; margin-bottom:0;">🍽 Tüketilen Besinler</h2>
+                <button class="btn-ikincil btn-kucuk" id="gd-ekle-btn" onclick="tuketimEkranAc()">+ Besin Ekle</button>
+            </div>
+            <div id="gun-detay-ogun-listesi" style="margin-top:10px;"></div>
+        </div>
+
+        <div class="kart kart-kompakt">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+                <span class="hedef-yazi" style="margin-top:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><path d="M12 2.7s6.5 7 6.5 11.3a6.5 6.5 0 0 1-13 0C5.5 9.7 12 2.7 12 2.7z"></path></svg> Su</span>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <strong id="gd-su" style="font-family:var(--font-baslik);">0 ml</strong>
+                    <button class="gd-duzenle-btn" id="gd-su-duzenle-btn" onclick="gunDetaySuDuzenleAc()" aria-label="Düzenle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg></button>
+                </div>
+            </div>
+            <div class="gd-su-duzenle gizli" id="gd-su-duzenle-alani">
+                <input type="number" id="gd-su-input" placeholder="Yeni su miktarı (ml)" min="0">
+                <button onclick="gunDetaySuKaydet()">Kaydet</button>
+            </div>
+            <div class="ilerleme-yolu" style="margin-top:8px;"><div class="ilerleme-cubuk" id="gd-su-bar" style="width:0%;"></div></div>
+            <span class="hedef-yazi" id="gd-su-hedef" style="margin-top:6px;"></span>
+        </div>
+
+        <div class="kart kart-kompakt">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <h2 style="text-align:left; font-size:15px; margin-bottom:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><circle cx="13" cy="4.5" r="1.8"></circle><path d="M10 21l1.5-6-2.5-2.5 1-5L13 9l3 1.5 2 3"></path><path d="M10 21l-2.5-1.5L6 21"></path><path d="M13.5 15.5l3.5 1 1.5 3"></path></svg> Egzersiz &amp; Adım</h2>
+                <span class="hedef-yazi" id="gd-egz-ozet" style="margin-top:0;"></span>
+            </div>
+            <div class="buton-grubu" style="margin-top:8px; flex-wrap:wrap;">
+                <input type="number" id="gd-adim-input" placeholder="O günün adımı">
+                <button class="btn-ikincil btn-fit" style="margin-top:0;" onclick="bugunAdimKaydet(gunDetayAktifTarih)">Kaydet</button>
+            </div>
+            <p class="form-not" id="gd-adim-bilgi" style="margin:6px 0 10px;"></p>
+            <div id="gun-detay-egz-liste"></div>
+            <div style="display:flex; justify-content:flex-end; margin-top:6px;">
+                <span class="hedef-yazi" style="margin-top:0; cursor:pointer; text-decoration:underline;" onclick="gunDetayEgzersizAlaniAcKapa()">+ Egzersiz Ekle</span>
+                <span class="hedef-yazi" style="margin-top:0; margin-left:10px; cursor:pointer; text-decoration:underline;" onclick="egzersizKutuphaneAc(gunDetayAktifTarih, 'gun-detay-ekrani')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg> Kütüphaneden Seç</span>
+            </div>
+            <div class="egz-durum-grup" id="gd-egz-durum-grup">
+                <button type="button" class="egz-durum-btn" onclick="bugunEgzersizDurumAyarla('yapildi', gunDetayAktifTarih || bugununTarihi)">✅ Yaptım</button>
+                <button type="button" class="egz-durum-btn" onclick="bugunEgzersizDurumAyarla('planli_degil', gunDetayAktifTarih || bugununTarihi)">⏭️ Planlı değildi</button>
+                <button type="button" class="egz-durum-btn" onclick="bugunEgzersizDurumAyarla('yapmadi', gunDetayAktifTarih || bugununTarihi)">❌ Yapmadım</button>
+            </div>
+            <div class="buton-grubu gizli" id="gd-egzersiz-form" style="margin-top:10px; flex-wrap:wrap;">
+                <select id="gdeg-tip">
+                    <option value="agirlik">Ağırlık</option>
+                    <option value="kosu">Koşu</option>
+                    <option value="futbol">Futbol</option>
+                    <option value="bisiklet">Bisiklet</option>
+                    <option value="kardiyo">Kardiyo</option>
+                    <option value="karisik">Karışık</option>
+                </select>
+                <input type="number" id="gdeg-sure" placeholder="Dakika">
+                <button style="margin-top:0;" onclick="gunDetayEgzersizEkle()">Ekle</button>
+            </div>
+        </div>
+
+        <div class="kart kart-kompakt">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <h2 style="text-align:left; font-size:15px; margin-bottom:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><rect x="3.5" y="8.5" width="17" height="7" rx="3.5" transform="rotate(-45 12 12)"></rect><line x1="8.5" y1="8.5" x2="15.5" y2="15.5"></line></svg> Takviyeler</h2>
+                <span class="hedef-yazi" id="gd-takviye-oran" style="margin-top:0;"></span>
+            </div>
+            <div id="gun-detay-takviye-liste"></div>
+        </div>
+
+        <div class="kart kart-kompakt">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+                <span class="hedef-yazi" style="margin-top:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><line x1="12" y1="3" x2="12" y2="21"></line><path d="M5 7l-3 7a3.5 3.5 0 0 0 6 0L5 7z"></path><path d="M19 7l-3 7a3.5 3.5 0 0 0 6 0l-3-7z"></path><line x1="2" y1="21" x2="22" y2="21"></line><line x1="5" y1="7" x2="19" y2="7"></line></svg> Kilo</span>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <strong id="gd-kilo" style="font-family:var(--font-baslik);">-</strong>
+                    <button class="gd-duzenle-btn" id="gd-kilo-duzenle-btn" onclick="gunDetayKiloDuzenle()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg> Düzenle</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 11b. YENİLİKLER / SÜRÜM NOTLARI (Faz 11) — liste app.js'te sabit diziden doldurulur -->
+    <div id="yenilikler-ekrani" class="gizli">
+        <h1><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><path d="M12 2l2.4 5.4L20 8l-4 4 1 6-5-2.8L7 18l1-6-4-4 5.6-.6L12 2z"></path></svg> Yenilikler</h1>
+        <p style="color:var(--yazi-pasif); font-size:14px; margin-top:-8px;">Nutrio 3.0 ile gelenler — kategori kategori.</p>
+        <div id="yenilikler-liste"></div>
+        <button class="btn-ikincil" onclick="sayfaGoster('ayarlar-ekrani')" style="margin-top:16px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> Ayarlara Dön</button>
+    </div>
+
+    <!-- 11. NASIL ÇALIŞIR / SSS (Faz 6) -->
+    <div id="sss-ekrani" class="gizli">
+        <h1><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Nasıl Çalışır / SSS</h1>
+        <p style="color:var(--yazi-pasif); font-size:14px; margin-top:-8px;">Nutrio hakkındaki sık sorulan sorular.</p>
+
+        <details class="sss-oge">
+            <summary>Verilerim nerede saklanıyor?</summary>
+            <p>Tüm verilerin (profiller, kayıtlar, kütüphane) yalnızca bu tarayıcının yerel deposunda (localStorage) saklanır. Hiçbir sunucuya gönderilmez, hiçbir hesap açman gerekmez.</p>
+        </details>
+
+        <details class="sss-oge">
+            <summary>Telefon/tarayıcı değiştirirsem ne olur?</summary>
+            <p>Veriler cihazında saklandığı için otomatik taşınmaz. Önce Ayarlar → Veri Yedekleme’den “Verileri Dışa Aktar (JSON)” ile yedeğinı al, sonra yeni cihazda/tarayıcıda “Verileri İçe Aktar” ile bu dosyayı geri yükle.</p>
+        </details>
+
+        <details class="sss-oge">
+            <summary>Tarayıcı geçmişimi/verilerimi temizlersem kayıtlarım silinir mi?</summary>
+            <p>Evet. Site verilerini temizlersen yedek almadıysan kayıtların kaybolur. Özellikle iOS Safari, uzun süre açılmayan PWA’ların yerel depolamasını kendi başına temizleyebilir — düzenli yedek almanı öneririz.</p>
+        </details>
+
+        <details class="sss-oge">
+            <summary>Neden internet olmadan da çalışıyor?</summary>
+            <p>Nutrio bir PWA’dır: service worker adlı bir teknolojiyle temel dosyaları (arayüz, veriler, kütüphane) önbelleğe alır. Böylece internet olmasa bile açılır ve çalışmaya devam eder.</p>
+        </details>
+
+        <details class="sss-oge">
+            <summary>Verilerimi nasıl yedeklerim?</summary>
+            <p>Ayarlar → 💾 Veri Yedekleme bölümünden “Verileri Dışa Aktar (JSON)” butonuna dokun. İndirilen dosyayı güvenli bir yerde sakla; istediğinde aynı bölümden içe aktarabilirsin.</p>
+        </details>
+
+        <button class="btn-ikincil" onclick="sayfaGoster('ayarlar-ekrani')" style="margin-top:16px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> Ayarlara Dön</button>
+    </div>
+    </div><!-- /sayfa-govde -->
+
+    <div class="alt-nav">
+        <div class="alt-nav-ic">
+            <button class="nav-btn" id="nav-ana" onclick="navGit('ana-ekran')"><span class="nav-ikon">⌂</span>Ana</button>
+            <button class="nav-btn" id="nav-plan" onclick="navGit('plan-ekrani')"><span class="nav-ikon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></span>Plan</button>
+            <button class="nav-btn nav-btn-ekle" id="nav-ekle" onclick="tuketimEkranAc()"><span class="nav-ikon nav-ikon-ekle">＋</span><span class="nav-ekle-yazi">Ekle</span></button>
+            <button class="nav-btn" id="nav-ilerleme" onclick="navGit('gecmis-ekrani')"><span class="nav-ikon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg></span>İlerleme</button>
+            <button class="nav-btn" id="nav-daha" onclick="navGit('daha-fazla-ekrani')"><span class="nav-ikon">☰</span>Daha Fazla</button>
+        </div>
+    </div>
+
+    <div class="toast-konteyner" id="toast-konteyner"></div>
+
+    <!-- NUTRIO MODAL (replaces native prompt/confirm) -->
+    <div id="nutrio-modal-overlay" class="gizli"></div>
+
+    <script src="./besinler.js"></script>
+    <script src="./app.js"></script>
+    <script>
+        // PWA — service worker kaydı (yalnızca HTTPS/localhost'ta çalışır; file://'de devre dışı)
+        if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js').catch((err) => console.warn('Service worker kaydedilemedi:', err));
+            });
+        }
+    </script>
+</body>
+</html>
